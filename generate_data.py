@@ -1,20 +1,21 @@
 import random
 from datetime import timedelta
+import glob
 
 import numpy as np
 import pandas as pd
 from faker import Faker
-from utils import save_to_parquet
+from utils import load_pdf_to_volume, save_to_parquet
 
 # Set environment variables for Databricks Volumes
 import os
 os.environ['CATALOG'] = 'demo_generator'
-os.environ['SCHEMA'] = 'adrian_tompkins_mining_commercial_v2'
+os.environ['SCHEMA'] = 'adrian_tompkins_mining_commercial'
 os.environ['VOLUME'] = 'raw_data'
 
 
 
-"""Mega Minerals - mining_commercial_v2
+"""Mega Minerals - mining_commercial
 Raw data generation for all datasources defined in demo_story.
 
 Key story patterns encoded numerically:
@@ -1018,6 +1019,10 @@ if __name__ == "__main__":
     validate_vessel_story(vessel_schedule)
     validate_quality_story(ore_quality_assays)
     validate_maintenance_story(maintenance_logs)
+
+    # 3) Load PDF files to volume
+    for pdf_path in glob.glob("documents/pdf/*.pdf"):
+        load_pdf_to_volume(pdf_path)
 
     print("\n" + "=" * 60)
     print("Data generation COMPLETE - raw tables ready for SQL transformations.")

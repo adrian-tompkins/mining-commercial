@@ -4,63 +4,63 @@
       "name": "ds_port_inventory_daily",
       "displayName": "Port Inventory Daily",
       "queryLines": [
-        "SELECT date, site, product_code, net_tonnes_delta, tonnes_on_hand, tonnes_on_hand_millions, index_price_usd_per_t, inventory_value_usd, inventory_days_on_hand\nFROM demo_generator.adrian_tompkins_mining_commercial_v2.gold_port_inventory_daily\nORDER BY date, site, product_code "
+        "SELECT date, site, product_code, net_tonnes_delta, tonnes_on_hand, tonnes_on_hand_millions, index_price_usd_per_t, inventory_value_usd, inventory_days_on_hand\nFROM demo_generator.adrian_tompkins_mining_commercial.gold_port_inventory_daily\nORDER BY date, site, product_code "
       ]
     },
     {
       "name": "ds_port_inventory_mm62_pilbara",
       "displayName": "MM62 Port Inventory Pilbara",
       "queryLines": [
-        "SELECT date, site, product_code, tonnes_on_hand_millions\nFROM demo_generator.adrian_tompkins_mining_commercial_v2.gold_port_inventory_daily\nWHERE site = 'Pilbara Port' AND product_code = 'MM62'\nORDER BY date "
+        "SELECT date, site, product_code, tonnes_on_hand_millions\nFROM demo_generator.adrian_tompkins_mining_commercial.gold_port_inventory_daily\nWHERE site = 'Pilbara Port' AND product_code = 'MM62'\nORDER BY date "
       ]
     },
     {
       "name": "ds_port_inventory_kpi_total",
       "displayName": "Total Port Inventory KPI",
       "queryLines": [
-        "SELECT SUM(tonnes_on_hand_millions) AS total_tonnes_millions\nFROM demo_generator.adrian_tompkins_mining_commercial_v2.gold_port_inventory_daily\nWHERE date = (SELECT MAX(date) FROM demo_generator.adrian_tompkins_mining_commercial_v2.gold_port_inventory_daily) "
+        "SELECT SUM(tonnes_on_hand_millions) AS total_tonnes_millions\nFROM demo_generator.adrian_tompkins_mining_commercial.gold_port_inventory_daily\nWHERE date = (SELECT MAX(date) FROM demo_generator.adrian_tompkins_mining_commercial.gold_port_inventory_daily) "
       ]
     },
     {
       "name": "ds_vessel_coverage_oct_top",
       "displayName": "Vessel Coverage Top by Demurrage",
       "queryLines": [
-        "SELECT vessel_name,\n       customer_name,\n       product_code,\n       site,\n       laycan_start_date,\n       laycan_end_date,\n       planned_tonnes,\n       covered_tonnes,\n       demurrage_exposure_usd,\n       month\nFROM (\n  SELECT vc.*,\n         ROW_NUMBER() OVER (PARTITION BY month ORDER BY demurrage_exposure_usd DESC) AS vessel_rank\n  FROM demo_generator.adrian_tompkins_mining_commercial_v2.gold_vessel_coverage vc\n) t\nWHERE vessel_rank <= 8\nORDER BY month, demurrage_exposure_usd DESC "
+        "SELECT vessel_name,\n       customer_name,\n       product_code,\n       site,\n       laycan_start_date,\n       laycan_end_date,\n       planned_tonnes,\n       covered_tonnes,\n       demurrage_exposure_usd,\n       month\nFROM (\n  SELECT vc.*,\n         ROW_NUMBER() OVER (PARTITION BY month ORDER BY demurrage_exposure_usd DESC) AS vessel_rank\n  FROM demo_generator.adrian_tompkins_mining_commercial.gold_vessel_coverage vc\n) t\nWHERE vessel_rank <= 8\nORDER BY month, demurrage_exposure_usd DESC "
       ]
     },
     {
       "name": "ds_quality_vs_contract_mm62_oct",
       "displayName": "Quality vs Contract MM62 October",
       "queryLines": [
-        "SELECT shipment_id,\n       customer_name,\n       site,\n       product_code,\n       planned_load_date,\n       avg_fe_pct,\n       avg_moisture_pct,\n       avg_sio2_pct,\n       avg_al2o3_pct,\n       avg_p_pct,\n       contract_fe_min_pct,\n       contract_moisture_max_pct,\n       realized_revenue_usd,\n       quality_penalty_usd\nFROM demo_generator.adrian_tompkins_mining_commercial_v2.gold_quality_vs_contract\nWHERE product_code = 'MM62'\n  AND planned_load_date BETWEEN DATE '2025-10-01' AND DATE '2025-10-31'\nORDER BY quality_penalty_usd DESC "
+        "SELECT shipment_id,\n       customer_name,\n       site,\n       product_code,\n       planned_load_date,\n       avg_fe_pct,\n       avg_moisture_pct,\n       avg_sio2_pct,\n       avg_al2o3_pct,\n       avg_p_pct,\n       contract_fe_min_pct,\n       contract_moisture_max_pct,\n       realized_revenue_usd,\n       quality_penalty_usd\nFROM demo_generator.adrian_tompkins_mining_commercial.gold_quality_vs_contract\nWHERE product_code = 'MM62'\n  AND planned_load_date BETWEEN DATE '2025-10-01' AND DATE '2025-10-31'\nORDER BY quality_penalty_usd DESC "
       ]
     },
     {
       "name": "ds_port_inventory_latest_by_product",
       "displayName": "Inventory Latest by Product",
       "queryLines": [
-        "SELECT date,\n       site,\n       product_code,\n       inventory_value_usd,\n       inventory_days_on_hand\nFROM demo_generator.adrian_tompkins_mining_commercial_v2.gold_port_inventory_daily\nWHERE date = (SELECT MAX(date) FROM demo_generator.adrian_tompkins_mining_commercial_v2.gold_port_inventory_daily)\nORDER BY product_code, site "
+        "SELECT date,\n       site,\n       product_code,\n       inventory_value_usd,\n       inventory_days_on_hand\nFROM demo_generator.adrian_tompkins_mining_commercial.gold_port_inventory_daily\nWHERE date = (SELECT MAX(date) FROM demo_generator.adrian_tompkins_mining_commercial.gold_port_inventory_daily)\nORDER BY product_code, site "
       ]
     },
     {
       "name": "ds_asset_events",
       "displayName": "Asset Events Log",
       "queryLines": [
-        "SELECT event_date,\n       asset_id,\n       asset_type,\n       site,\n       event_type,\n       downtime_hours,\n       description\nFROM demo_generator.adrian_tompkins_mining_commercial_v2.gold_asset_events\nORDER BY event_date DESC, asset_id\nLIMIT 50 "
+        "SELECT event_date,\n       asset_id,\n       asset_type,\n       site,\n       event_type,\n       downtime_hours,\n       description\nFROM demo_generator.adrian_tompkins_mining_commercial.gold_asset_events\nORDER BY event_date DESC, asset_id\nLIMIT 50 "
       ]
     },
     {
       "name": "ds_supply_chain_financials_mm62",
       "displayName": "Supply Chain Financials MM62",
       "queryLines": [
-        "SELECT month,\n       product_code,\n       total_demurrage_usd,\n       avg_inventory_days_on_hand,\n       inventory_value_port_usd,\n       tonnes_on_water_equiv\nFROM demo_generator.adrian_tompkins_mining_commercial_v2.gold_supply_chain_financials\nWHERE product_code = 'MM62'\nORDER BY month "
+        "SELECT month,\n       product_code,\n       total_demurrage_usd,\n       avg_inventory_days_on_hand,\n       inventory_value_port_usd,\n       tonnes_on_water_equiv\nFROM demo_generator.adrian_tompkins_mining_commercial.gold_supply_chain_financials\nWHERE product_code = 'MM62'\nORDER BY month "
       ]
     },
     {
       "name": "ds_shipment_revenue",
       "displayName": "Shipment Revenue",
       "queryLines": [
-        "SELECT shipment_id,\n       contract_id,\n       vessel_id,\n       product_code,\n       nomination_date,\n       planned_load_date,\n       planned_tonnes,\n       realized_price_usd_per_t,\n       realized_revenue_usd,\n       month,\n       customer_name,\n       pricing_index,\n       freight_term,\n       fx_currency,\n       has_carbon_price_reopener,\n       requires_scope3_reporting\nFROM demo_generator.adrian_tompkins_mining_commercial_v2.silver_shipment_revenue\nORDER BY planned_load_date, shipment_id "
+        "SELECT shipment_id,\n       contract_id,\n       vessel_id,\n       product_code,\n       nomination_date,\n       planned_load_date,\n       planned_tonnes,\n       realized_price_usd_per_t,\n       realized_revenue_usd,\n       month,\n       customer_name,\n       pricing_index,\n       freight_term,\n       fx_currency,\n       has_carbon_price_reopener,\n       requires_scope3_reporting\nFROM demo_generator.adrian_tompkins_mining_commercial.silver_shipment_revenue\nORDER BY planned_load_date, shipment_id "
       ]
     }
   ],

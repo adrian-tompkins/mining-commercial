@@ -1,4 +1,4 @@
-# mining_commercial_v2 - Databricks Asset Bundle
+# mining_commercial - Databricks Asset Bundle
 
 ## Overview
 The VP Commercial at Mega Minerals, a global iron ore producer, uses Databricks to unify mine, rail, port, trading, and contract data into a single source of truth. In October–November 2025, a combination of unplanned ship-loader downtime and a spike in freight and FX volatility exposes gaps between physical operations and commercial decisions: port stockpiles for flagship 62% Fe fines fall from ~1.4Mt to ~0.8Mt while three large vessels face demurrage risk, dynamic pricing lags market moves by $4–6/t for a few key customers, and predictive maintenance models show over $25M of revenue at risk if a critical conveyor fails. A GenAI assistant over contracts and ESG PDFs helps the team quickly find which contracts allow price re-openers on carbon taxes and which have Scope 3 reporting obligations, enabling targeted renegotiations and better risk management.
@@ -84,8 +84,8 @@ No PDF documents are included in this demo.
 
 ### Unity Catalog
 - **Catalog**: `demo_generator`
-- **Schema**: `adrian_tompkins_mining_commercial_v2`
-- **Workspace Path**: `/Users/adrian.tompkins@databricks.com/mining_commercial_v2`
+- **Schema**: `adrian_tompkins_mining_commercial`
+- **Workspace Path**: `/Users/adrian.tompkins@databricks.com/mining_commercial`
 
 ### Customization
 You can modify the bundle by editing `databricks.yml`:

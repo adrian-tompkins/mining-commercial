@@ -1,9 +1,9 @@
 bundle:
-  name: ai_demo_generator_demo_mining_commercial_v2
+  name: mining_commercial_demo
 variables:
   project_name:
     description: AI Demo Generator Project
-    default: mining_commercial_v2
+    default: mining_commercial
   warehouse_name:
     description: Name of the SQL warehouse to use
     default: Shared Unity Catalog Serverless
@@ -15,7 +15,7 @@ variables:
     default: dev
   workspace_path:
     description: Workspace path where bundle files will be synced
-    default: /Users/adrian.tompkins@databricks.com/mining_commercial_v2
+    default: /Users/adrian.tompkins@databricks.com/mining_commercial
 workspace:
   file_path: ${var.workspace_path}
 sync:
@@ -52,14 +52,14 @@ resources:
             path: ./transformations.sql
           warehouse_id: ${var.warehouse_id}
         max_retries: 1
-      - task_key: deploy_agent_bricks
-        depends_on:
-        - task_key: sql_transformations
-        spark_python_task:
-          python_file: ./deploy_resources.py
-          source: WORKSPACE
-        environment_key: default
-        max_retries: 1
+      # - task_key: deploy_agent_bricks
+      #   depends_on:
+      #   - task_key: sql_transformations
+      #   spark_python_task:
+      #     python_file: ./deploy_resources.py
+      #     source: WORKSPACE
+      #   environment_key: default
+      #   max_retries: 1
       environments:
       - environment_key: default
         spec:
@@ -70,18 +70,18 @@ resources:
           - databricks-sdk>=0.18.0
   schemas:
     demo_schema:
-      name: adrian_tompkins_mining_commercial_v2
+      name: adrian_tompkins_mining_commercial
       catalog_name: demo_generator
-      comment: Schema for mining_commercial_v2 demo
+      comment: Schema for mining_commercial demo
   volumes:
     raw_data_volume:
       name: raw_data
       catalog_name: demo_generator
-      schema_name: adrian_tompkins_mining_commercial_v2
+      schema_name: adrian_tompkins_mining_commercial
       volume_type: MANAGED
-      comment: Volume for mining_commercial_v2 raw data and artifacts
+      comment: Volume for mining_commercial raw data and artifacts
   dashboards:
     mega_minerals_supply_chain:
       display_name: ${var.project_name} - Mega Minerals Integrated Supply Chain
-      file_path: ./dashboard_mega_minerals_supply_chain.lvdash.json
+      file_path: ./mega_minerals_supply_chain.lvdash.json
       warehouse_id: ${var.warehouse_id}

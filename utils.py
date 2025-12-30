@@ -165,3 +165,42 @@ def save_to_parquet(df: pd.DataFrame, table_name: str, num_files: int = 5) -> No
     except Exception as e:
       print(f"Warning: Could not create Delta table: {e}")
       print("Parquet files are still available in the volume.")
+
+
+def load_pdf_to_volume(input_path: str) -> str:
+  """Copy a PDF file to the volume location.
+
+  Args:
+    input_path: Path to the input PDF file.
+
+  Returns:
+    The destination path where the file was copied.
+
+  If CATALOG, SCHEMA, and VOLUME env vars are set, copies to /Volumes/{catalog}/{schema}/{volume}/pdf/
+  Otherwise, copies to data/pdf/ locally.
+  """
+  if not os.path.isfile(input_path):
+    raise FileNotFoundError(f"Input file not found: {input_path}")
+
+  filename = os.path.basename(input_path)
+
+  # Check if we should write to Databricks Volumes or local filesystem
+  catalog = os.getenv('CATALOG')
+  schema = os.getenv('SCHEMA')
+  volume = os.getenv('VOLUME')
+
+  if catalog and schema and volume:
+    # Write to Databricks Volumes
+    outdir = f'/Volumes/{catalog}/{schema}/{volume}/pdf'
+    location = f'{catalog}.{schema}.{volume}'
+  else:
+    # Write to local filesystem
+    outdir = 'data/pdf'
+    location = 'local filesystem'
+
+  os.makedirs(outdir, exist_ok=True)
+  dest_path = os.path.join(outdir, filename)
+  shutil.copy(input_path, dest_path)
+  print(f'✓ Copied {filename} to {outdir}/ [{location}]')
+
+  return dest_path
