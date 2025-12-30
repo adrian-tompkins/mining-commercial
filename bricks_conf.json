@@ -1,0 +1,104 @@
+{
+  "genie_space": {
+    "config": {
+      "id": "01f0dfbb2e011ac2b6f48a6641e3cca4",
+      "space_id": "01f0dfbb2e011ac2b6f48a6641e3cca4",
+      "display_name": "Mega Minerals Commercial Integrated AI-BI - Genie",
+      "description": "Genie space for mining_commercial_v2 demo with curated questions and SQL instructions",
+      "warehouse_id": "862f1d757f0424f7",
+      "created_timestamp": 1766465547222,
+      "last_updated_timestamp": 1766465547785,
+      "table_identifiers": [
+        "demo_generator.adrian_tompkins_mining_commercial_v2.gold_genie_semantic_layer",
+        "demo_generator.adrian_tompkins_mining_commercial_v2.gold_port_inventory_daily",
+        "demo_generator.adrian_tompkins_mining_commercial_v2.gold_vessel_coverage",
+        "demo_generator.adrian_tompkins_mining_commercial_v2.gold_asset_risk_14d",
+        "demo_generator.adrian_tompkins_mining_commercial_v2.gold_asset_top_risk_view",
+        "demo_generator.adrian_tompkins_mining_commercial_v2.gold_pricing_positions",
+        "demo_generator.adrian_tompkins_mining_commercial_v2.gold_contract_esg_summary",
+        "demo_generator.adrian_tompkins_mining_commercial_v2.gold_supply_chain_financials",
+        "demo_generator.adrian_tompkins_mining_commercial_v2.gold_quality_vs_contract",
+        "demo_generator.adrian_tompkins_mining_commercial_v2.silver_contracts",
+        "demo_generator.adrian_tompkins_mining_commercial_v2.silver_shipment_revenue",
+        "demo_generator.adrian_tompkins_mining_commercial_v2.silver_vessel_schedule",
+        "demo_generator.adrian_tompkins_mining_commercial_v2.silver_asset_events",
+        "demo_generator.adrian_tompkins_mining_commercial_v2.silver_port_stockpile_events",
+        "demo_generator.adrian_tompkins_mining_commercial_v2.silver_rail_movements"
+      ],
+      "user_id": 7828989965672925,
+      "run_as_type": "VIEWER",
+      "folder_node_internal_name": "tree/3593553632946368"
+    },
+    "sample_questions": [
+      {
+        "question_text": "By customer and region (Asia vs EU), what is our ESG exposure in terms of contracts that require Scope 3 reporting and allow carbon tax pass-through, and what are the base margin targets on those deals?"
+      },
+      {
+        "question_text": "How much total revenue is at risk over the next 14 days if the SL-2 ship loader or CV-01 conveyor fail, and how many shipments and tonnes does that represent?"
+      },
+      {
+        "question_text": "Show port inventory trends for MM62 vs MM58 at Pilbara Port from August to November 2025, highlighting periods of low stock and the associated demurrage or revenue-at-risk spikes."
+      },
+      {
+        "question_text": "For MM62 in October 2025, how did vessel coverage, demurrage exposure, and inventory days on hand move together, and what was the commercial impact of the SL-2/port constraints?"
+      },
+      {
+        "question_text": "Which contracts include carbon price reopener clauses and/or Scope 3 reporting obligations, and what are the current margins and planned volumes associated with those contracts?"
+      },
+      {
+        "question_text": "Under the stressed pricing scenario (higher freight, stronger AUD), how do base vs scenario margins and EBITDA impact change for our top MM62 customers like Dragon Steel and Nippon Metals?"
+      },
+      {
+        "question_text": "Which critical assets (conveyors, ship loaders, stacker-reclaimers) show the highest revenue at risk over the next 14 days, and which customers and shipments are most exposed if they fail?"
+      },
+      {
+        "question_text": "How much MM62 inventory value do we currently have at Pilbara Port versus on the water, and how does that compare to our typical 9\u201311 days of stock on hand?"
+      },
+      {
+        "question_text": "During the October 2025 outage window, which vessels and customers (Dragon Steel, Nippon Metals, EuroSteel) had the weakest coverage and the highest demurrage exposure?"
+      },
+      {
+        "question_text": "When did MM62 port inventory at Pilbara Port first drop below its usual 0.8\u20130.9Mt range in October 2025, and how low did it get?"
+      }
+    ],
+    "benchmarks": [],
+    "instructions": [
+      {
+        "title": "Notes",
+        "content": "This Genie space supports end-to-end commercial analysis for Mega Minerals\u2019 iron ore business, linking physical supply chain metrics (port inventory, vessel coverage, asset risk) with pricing, EBITDA, and ESG/contract exposure.\n\nData model and key domains:\n- gold_genie_semantic_layer is a cross-domain semantic view. Each row is tagged with record_type and common dimensions (date, site, product_code, customer_name, contract_id) plus up to five metrics. Record types:\n  - 'port_inventory': inventory and days-on-hand metrics by site/product/date\n  - 'vessel_coverage': per-vessel coverage and demurrage exposure\n  - 'asset_risk': per-asset 14-day failure risk and revenue-at-risk\n  - 'pricing_position': per-contract/quarter margin and EBITDA impact\n  - 'contract_esg': per-contract ESG/commercial flags (carbon price reopener, Scope 3) and base margin targets\n- Gold tables provide the authoritative metrics and should be preferred for business answers:\n  - demo_generator.adrian_tompkins_mining_commercial_v2.gold_port_inventory_daily: daily net movements, tonnes on hand, inventory value, and inventory days-on-hand by site and product (e.g., MM62 at Pilbara Port).\n  - demo_generator.adrian_tompkins_mining_commercial_v2.gold_vessel_coverage: per-vessel planned vs covered tonnes, coverage_ratio, and demurrage_exposure_usd.\n  - demo_generator.adrian_tompkins_mining_commercial_v2.gold_asset_risk_14d and gold_asset_top_risk_view: per-asset predictive failure probability, expected downtime, shipments/tonnes at risk, and revenue_at_risk_usd.\n  - demo_generator.adrian_tompkins_mining_commercial_v2.gold_pricing_positions: base vs scenario margin per tonne and EBITDA impact by contract/quarter under a stressed scenario (+15% fuel, +3 USD/t freight, +0.02 AUDUSD).\n  - demo_generator.adrian_tompkins_mining_commercial_v2.gold_contract_esg_summary: contract-level summary of carbon price reopeners, Scope 3 obligations, and base margin targets, with region_tag (Asia vs EU).\n\nBusiness logic and naming guidance:\n- \u201cPort inventory\u201d / \u201cstock on hand\u201d / \u201ctonnes on hand\u201d should use tonnes_on_hand or tonnes_on_hand_millions (for Mt) from gold_port_inventory_daily, filtered by site (e.g., 'Pilbara Port') and product_code (e.g., 'MM62').\n- \u201cDays on hand\u201d or \u201cinventory days\u201d should use inventory_days_on_hand from gold_port_inventory_daily.\n- \u201cInventory value\u201d should use inventory_value_usd from gold_port_inventory_daily, and can be compared to on-water value via tonnes_on_water_equiv and inventory_value_port_usd in gold_supply_chain_financials.\n- \u201cOn-water tonnes\u201d / \u201ctonnes on water\u201d should be interpreted via tonnes_on_water_equiv in gold_supply_chain_financials or via covered_tonnes and planned_tonnes in gold_vessel_coverage for vessels currently in laycan or transit.\n- \u201cVessel coverage\u201d and \u201ccoverage\u201d should map to coverage_ratio, covered_tonnes, and planned_tonnes in gold_vessel_coverage. Demurrage-related questions should use demurrage_exposure_usd and demurrage_rate_usd_per_day.\n- \u201cDemurrage cost\u201d / \u201cdemurrage exposure\u201d refers to demurrage_exposure_usd (vessel-level) or total_demurrage_usd in gold_supply_chain_financials (monthly/product rollups).\n- \u201cRevenue at risk\u201d from asset failures should use revenue_at_risk_usd, total_shipments_at_risk, and tonnes_at_risk from gold_asset_risk_14d or gold_asset_top_risk_view, filtered by asset_id (e.g., 'SL-2', 'CV-01').\n- \u201cFailure probability\u201d / \u201crisk of failure in next 2 weeks\u201d refers to predicted_failure_prob_14d in gold_asset_risk_14d or gold_asset_top_risk_view.\n- \u201cMargin per tonne\u201d and \u201cEBITDA impact\u201d are in gold_pricing_positions:\n  - base_case_margin_usd_per_t is the base case margin per tonne.\n  - scenario_margin_usd_per_t is the stressed scenario margin per tonne.\n  - ebitda_impact_usd represents the total EBITDA change under the stressed scenario for that position.\n- \u201cContracts with carbon price reopeners\u201d or \u201ccarbon tax pass-through\u201d are contracts where has_carbon_price_reopener = TRUE in gold_contract_esg_summary or silver_contracts. \u201cScope 3 reporting obligations\u201d uses requires_scope3_reporting = TRUE.\n- \u201cAsia vs EU\u201d or \u201cregion\u201d should use region_tag in gold_contract_esg_summary and region in gold_pricing_positions.\n\nSynonyms and natural-language mappings:\n- Product synonyms: 'MM62' ~ '62% Fe fines' ~ 'flagship fines'; 'MM58' ~ 'lower-grade fines'; 'MM65' ~ 'lump/premium'.\n- Site synonyms: 'Pilbara Port' ~ 'main export terminal' ~ 'main Pilbara terminal'; 'Secondary Port' ~ 'second port'.\n- Time period synonyms: references to \"October outage\", \"October 2025 outage\", or \"SL-2 outage period\" should map to dates around 2025-10-18 to 2025-10-31.\n- Asset synonyms: 'SL-1', 'SL-2', 'SL-3' are 'ship loaders'; 'CV-01', 'CV-02' are 'conveyors', and 'SR-3' is a 'stacker reclaimer'. Queries about a 'reclaimer' or 'reclaimer SR-3' should map to SR-3; queries about 'ship loader SL-2' or 'main ship loader' should map to SL-2.\n- ESG synonyms: 'carbon price reopener', 'carbon tax pass-through', 'carbon cost reopeners' map to has_carbon_price_reopener; 'Scope 3 reporting', 'Scope 3 obligations', 'Scope 3 disclosures' map to requires_scope3_reporting.\n\nData quality / demo notes:\n- This is synthetic demo data aligned to the Mega Minerals story (August\u2013November 2025). Patterns (e.g., SL-2 outage in mid-October, MM62 inventory compression, demurrage spikes, stressed pricing scenario) are intentionally exaggerated for teaching purposes.\n- gold_genie_semantic_layer is designed for LLM access and should be used when possible for integrated questions crossing inventory, vessel coverage, risk, pricing, and ESG. However, gold_* domain tables remain the source of truth for precise numeric answers and charting.\n\nWhen answering questions:\n- Prefer gold_genie_semantic_layer for cross-domain queries (e.g., combining asset risk with customer or product context).\n- Use domain-specific gold tables for detailed breakdowns (e.g., exact MM62 inventory trajectory, per-vessel demurrage exposure, per-contract scenario margins).\n- Clearly label units in answers: tonnes vs Mt (millions of tonnes), USD vs USD/t, percentage probabilities, and days.\n- Respect business naming: always surface dimensions as customer_name, product_code, site, contract_id, quarter, and month where applicable, and avoid exposing internal field names directly unless needed for clarity.",
+        "instruction_type": "TEXT_INSTRUCTION"
+      },
+      {
+        "title": "MM62 Inventory Trend at Pilbara Port",
+        "content": "-- Daily MM62 inventory and days-on-hand at Pilbara Port\nSELECT\n  date,\n  site,\n  product_code,\n  tonnes_on_hand_millions AS tonnes_on_hand_mt,\n  inventory_days_on_hand,\n  inventory_value_usd\nFROM demo_generator.adrian_tompkins_mining_commercial_v2.gold_port_inventory_daily\nWHERE site = 'Pilbara Port'\n  AND product_code = 'MM62'\nORDER BY date;",
+        "instruction_type": "SQL_INSTRUCTION"
+      },
+      {
+        "title": "Vessel Coverage and Demurrage by Customer",
+        "content": "-- Vessel coverage and demurrage exposure by vessel and customer\nSELECT\n  vessel_name,\n  customer_name,\n  product_code,\n  site,\n  laycan_start_date,\n  laycan_end_date,\n  planned_tonnes,\n  covered_tonnes,\n  coverage_ratio,\n  demurrage_exposure_usd\nFROM demo_generator.adrian_tompkins_mining_commercial_v2.gold_vessel_coverage\nWHERE site = 'Pilbara Port'\nORDER BY laycan_start_date, vessel_name;",
+        "instruction_type": "SQL_INSTRUCTION"
+      },
+      {
+        "title": "Top Assets by Revenue at Risk Over Next 14 Days",
+        "content": "-- Use gold_asset_top_risk_view for a simple at-risk asset list\nSELECT\n  evaluation_date,\n  asset_id,\n  asset_type,\n  site,\n  predicted_failure_prob_14d,\n  expected_downtime_hours,\n  total_shipments_at_risk,\n  tonnes_at_risk,\n  revenue_at_risk_usd\nFROM demo_generator.adrian_tompkins_mining_commercial_v2.gold_asset_top_risk_view\nORDER BY evaluation_date, revenue_at_risk_usd DESC;",
+        "instruction_type": "SQL_INSTRUCTION"
+      },
+      {
+        "title": "Contract ESG Exposure (Carbon Reopeners and Scope 3)",
+        "content": "-- ESG-related attributes at the contract level\nSELECT\n  contract_id,\n  customer_name,\n  region_tag,\n  product_code,\n  has_carbon_price_reopener,\n  requires_scope3_reporting,\n  base_margin_target_usd_per_t\nFROM demo_generator.adrian_tompkins_mining_commercial_v2.gold_contract_esg_summary\nORDER BY customer_name, contract_id;",
+        "instruction_type": "SQL_INSTRUCTION"
+      },
+      {
+        "title": "Pricing Positions: Base vs Scenario Margin and EBITDA Impact",
+        "content": "-- Compare base vs scenario margins for each contract position\nSELECT\n  customer_name,\n  contract_id,\n  product_code,\n  quarter,\n  total_volume_t,\n  base_case_margin_usd_per_t,\n  scenario_margin_usd_per_t,\n  (scenario_margin_usd_per_t - base_case_margin_usd_per_t) AS margin_delta_usd_per_t,\n  ebitda_impact_usd\nFROM demo_generator.adrian_tompkins_mining_commercial_v2.gold_pricing_positions\nORDER BY quarter, customer_name, product_code;",
+        "instruction_type": "SQL_INSTRUCTION"
+      }
+    ]
+  },
+  "dashboards": {
+    "mega_minerals_supply_chain": {
+      "title": "Mega Minerals Integrated Supply Chain",
+      "id": "01f0dfbb4eb819309332492e8f27505a"
+    }
+  }
+}

@@ -1,0 +1,1266 @@
+{
+  "datasets": [
+    {
+      "name": "ds_port_inventory_daily",
+      "displayName": "Port Inventory Daily",
+      "queryLines": [
+        "SELECT date, site, product_code, net_tonnes_delta, tonnes_on_hand, tonnes_on_hand_millions, index_price_usd_per_t, inventory_value_usd, inventory_days_on_hand\nFROM demo_generator.adrian_tompkins_mining_commercial_v2.gold_port_inventory_daily\nORDER BY date, site, product_code "
+      ]
+    },
+    {
+      "name": "ds_port_inventory_mm62_pilbara",
+      "displayName": "MM62 Port Inventory Pilbara",
+      "queryLines": [
+        "SELECT date, site, product_code, tonnes_on_hand_millions\nFROM demo_generator.adrian_tompkins_mining_commercial_v2.gold_port_inventory_daily\nWHERE site = 'Pilbara Port' AND product_code = 'MM62'\nORDER BY date "
+      ]
+    },
+    {
+      "name": "ds_port_inventory_kpi_total",
+      "displayName": "Total Port Inventory KPI",
+      "queryLines": [
+        "SELECT SUM(tonnes_on_hand_millions) AS total_tonnes_millions\nFROM demo_generator.adrian_tompkins_mining_commercial_v2.gold_port_inventory_daily\nWHERE date = (SELECT MAX(date) FROM demo_generator.adrian_tompkins_mining_commercial_v2.gold_port_inventory_daily) "
+      ]
+    },
+    {
+      "name": "ds_vessel_coverage_oct_top",
+      "displayName": "Vessel Coverage Top by Demurrage",
+      "queryLines": [
+        "SELECT vessel_name,\n       customer_name,\n       product_code,\n       site,\n       laycan_start_date,\n       laycan_end_date,\n       planned_tonnes,\n       covered_tonnes,\n       demurrage_exposure_usd,\n       month\nFROM (\n  SELECT vc.*,\n         ROW_NUMBER() OVER (PARTITION BY month ORDER BY demurrage_exposure_usd DESC) AS vessel_rank\n  FROM demo_generator.adrian_tompkins_mining_commercial_v2.gold_vessel_coverage vc\n) t\nWHERE vessel_rank <= 8\nORDER BY month, demurrage_exposure_usd DESC "
+      ]
+    },
+    {
+      "name": "ds_quality_vs_contract_mm62_oct",
+      "displayName": "Quality vs Contract MM62 October",
+      "queryLines": [
+        "SELECT shipment_id,\n       customer_name,\n       site,\n       product_code,\n       planned_load_date,\n       avg_fe_pct,\n       avg_moisture_pct,\n       avg_sio2_pct,\n       avg_al2o3_pct,\n       avg_p_pct,\n       contract_fe_min_pct,\n       contract_moisture_max_pct,\n       realized_revenue_usd,\n       quality_penalty_usd\nFROM demo_generator.adrian_tompkins_mining_commercial_v2.gold_quality_vs_contract\nWHERE product_code = 'MM62'\n  AND planned_load_date BETWEEN DATE '2025-10-01' AND DATE '2025-10-31'\nORDER BY quality_penalty_usd DESC "
+      ]
+    },
+    {
+      "name": "ds_port_inventory_latest_by_product",
+      "displayName": "Inventory Latest by Product",
+      "queryLines": [
+        "SELECT date,\n       site,\n       product_code,\n       inventory_value_usd,\n       inventory_days_on_hand\nFROM demo_generator.adrian_tompkins_mining_commercial_v2.gold_port_inventory_daily\nWHERE date = (SELECT MAX(date) FROM demo_generator.adrian_tompkins_mining_commercial_v2.gold_port_inventory_daily)\nORDER BY product_code, site "
+      ]
+    },
+    {
+      "name": "ds_asset_events",
+      "displayName": "Asset Events Log",
+      "queryLines": [
+        "SELECT event_date,\n       asset_id,\n       asset_type,\n       site,\n       event_type,\n       downtime_hours,\n       description\nFROM demo_generator.adrian_tompkins_mining_commercial_v2.gold_asset_events\nORDER BY event_date DESC, asset_id\nLIMIT 50 "
+      ]
+    },
+    {
+      "name": "ds_supply_chain_financials_mm62",
+      "displayName": "Supply Chain Financials MM62",
+      "queryLines": [
+        "SELECT month,\n       product_code,\n       total_demurrage_usd,\n       avg_inventory_days_on_hand,\n       inventory_value_port_usd,\n       tonnes_on_water_equiv\nFROM demo_generator.adrian_tompkins_mining_commercial_v2.gold_supply_chain_financials\nWHERE product_code = 'MM62'\nORDER BY month "
+      ]
+    },
+    {
+      "name": "ds_shipment_revenue",
+      "displayName": "Shipment Revenue",
+      "queryLines": [
+        "SELECT shipment_id,\n       contract_id,\n       vessel_id,\n       product_code,\n       nomination_date,\n       planned_load_date,\n       planned_tonnes,\n       realized_price_usd_per_t,\n       realized_revenue_usd,\n       month,\n       customer_name,\n       pricing_index,\n       freight_term,\n       fx_currency,\n       has_carbon_price_reopener,\n       requires_scope3_reporting\nFROM demo_generator.adrian_tompkins_mining_commercial_v2.silver_shipment_revenue\nORDER BY planned_load_date, shipment_id "
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "mega_minerals_supply_chain_main",
+      "displayName": "Mega Minerals Integrated Supply Chain",
+      "layout": [
+        {
+          "widget": {
+            "name": "header_overview",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Mega Minerals Integrated Supply Chain\n",
+                "This dashboard unifies port inventory, vessel coverage, quality vs contract, and financial exposure so Commercial can see when outages like the SL-2 failure drive stock drawdowns, vessel queues, quality risk, and demurrage.\n"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "total_port_inventory_all_products_mt",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_port_inventory_kpi_total",
+                  "fields": [
+                    {
+                      "name": "total_tonnes_millions",
+                      "expression": "`total_tonnes_millions`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_tonnes_millions",
+                  "displayName": "Total Port Inventory (Mt)",
+                  "format": {
+                    "type": "number",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "title": "Total Port Inventory (All Products, Mt)",
+                "showTitle": true,
+                "description": "SUM(tonnes_on_hand) / 1e6 across all sites and products for the latest date from gold_port_inventory_daily. Baseline around 1.4Mt at Pilbara, adjustable via site/product filters.",
+                "showDescription": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "mm62_port_inventory_trend_pilbara",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_port_inventory_mm62_pilbara",
+                  "fields": [
+                    {
+                      "name": "date",
+                      "expression": "`date`"
+                    },
+                    {
+                      "name": "sum(tonnes_on_hand_millions)",
+                      "expression": "SUM(`tonnes_on_hand_millions`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "date",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "axis": {
+                    "title": "Date"
+                  },
+                  "displayName": "Date"
+                },
+                "y": {
+                  "fieldName": "sum(tonnes_on_hand_millions)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "axis": {
+                    "title": "MM62 Tonnes on Hand (Mt)"
+                  },
+                  "displayName": "MM62 Tonnes on Hand (Mt)"
+                },
+                "label": {
+                  "show": false
+                }
+              },
+              "frame": {
+                "title": "MM62 Port Inventory Trend (Pilbara)",
+                "showTitle": true,
+                "description": "Daily MM62 tonnes on hand at Pilbara Port from gold_port_inventory_daily. Stable ~0.8\u20130.9Mt through mid-October, dipping toward ~0.45Mt during the SL-2 outage window before gradual recovery.",
+                "showDescription": true
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 2,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "vessel_coverage_and_demurrage_exposure",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_vessel_coverage_oct_top",
+                  "fields": [
+                    {
+                      "name": "vessel_name",
+                      "expression": "`vessel_name`"
+                    },
+                    {
+                      "name": "sum(planned_tonnes)",
+                      "expression": "SUM(`planned_tonnes`)"
+                    },
+                    {
+                      "name": "sum(covered_tonnes)",
+                      "expression": "SUM(`covered_tonnes`)"
+                    },
+                    {
+                      "name": "sum(demurrage_exposure_usd)",
+                      "expression": "SUM(`demurrage_exposure_usd`)"
+                    },
+                    {
+                      "name": "customer_name",
+                      "expression": "`customer_name`"
+                    },
+                    {
+                      "name": "product_code",
+                      "expression": "`product_code`"
+                    },
+                    {
+                      "name": "site",
+                      "expression": "`site`"
+                    },
+                    {
+                      "name": "laycan_start_date",
+                      "expression": "`laycan_start_date`"
+                    },
+                    {
+                      "name": "laycan_end_date",
+                      "expression": "`laycan_end_date`"
+                    },
+                    {
+                      "name": "month",
+                      "expression": "`month`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "vessel_name",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "axis": {
+                    "title": "Vessel"
+                  },
+                  "displayName": "Vessel"
+                },
+                "y": {
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "axis": {
+                    "title": "Tonnes"
+                  },
+                  "fields": [
+                    {
+                      "fieldName": "sum(planned_tonnes)",
+                      "displayName": "Planned Tonnes"
+                    },
+                    {
+                      "fieldName": "sum(covered_tonnes)",
+                      "displayName": "Covered Tonnes"
+                    }
+                  ]
+                },
+                "y2": {
+                  "fieldName": "sum(demurrage_exposure_usd)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "axis": {
+                    "title": "Demurrage Exposure (USD)",
+                    "labelAngle": 90
+                  },
+                  "displayName": "Demurrage Exposure (USD)"
+                },
+                "color": {
+                  "fieldName": "customer_name",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Customer"
+                }
+              },
+              "mark": {
+                "layout": "group"
+              },
+              "frame": {
+                "title": "Vessel Coverage and Demurrage Exposure",
+                "showTitle": true,
+                "description": "For top 5\u20138 vessels per month by demurrage_exposure_usd from gold_vessel_coverage, compares planned vs covered tonnes with demurrage exposure by vessel and customer, highlighting under-covered MM62 vessels during the October outage.",
+                "showDescription": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 3,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "quality_vs_contract_specs_mm62_october_shipments",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_quality_vs_contract_mm62_oct",
+                  "fields": [
+                    {
+                      "name": "shipment_id",
+                      "expression": "`shipment_id`"
+                    },
+                    {
+                      "name": "avg(avg_fe_pct)",
+                      "expression": "AVG(`avg_fe_pct`)"
+                    },
+                    {
+                      "name": "avg(contract_fe_min_pct)",
+                      "expression": "AVG(`contract_fe_min_pct`)"
+                    },
+                    {
+                      "name": "avg(avg_moisture_pct)",
+                      "expression": "AVG(`avg_moisture_pct`)"
+                    },
+                    {
+                      "name": "avg(avg_sio2_pct)",
+                      "expression": "AVG(`avg_sio2_pct`)"
+                    },
+                    {
+                      "name": "avg(quality_penalty_usd)",
+                      "expression": "AVG(`quality_penalty_usd`)"
+                    },
+                    {
+                      "name": "customer_name",
+                      "expression": "`customer_name`"
+                    },
+                    {
+                      "name": "planned_load_date",
+                      "expression": "`planned_load_date`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "shipment_id",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "axis": {
+                    "title": "Shipment"
+                  },
+                  "displayName": "Shipment ID"
+                },
+                "y": {
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "axis": {
+                    "title": "Fe %"
+                  },
+                  "fields": [
+                    {
+                      "fieldName": "avg(avg_fe_pct)",
+                      "displayName": "Actual Avg Fe %"
+                    },
+                    {
+                      "fieldName": "avg(contract_fe_min_pct)",
+                      "displayName": "Contract Fe Min %"
+                    }
+                  ]
+                },
+                "color": {
+                  "fieldName": "customer_name",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Customer"
+                }
+              },
+              "frame": {
+                "title": "Quality vs Contract Specs (MM62 October Shipments)",
+                "showTitle": true,
+                "description": "Top MM62 October shipments from gold_quality_vs_contract. Grouped bars compare actual Fe vs contract Fe min; tooltips surface moisture, SiO2, and quality_penalty_usd to show Dragon Steel and EuroSteel cargoes edging toward 61.6% Fe with higher penalties during the outage.",
+                "showDescription": true
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 5,
+            "width": 3,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "inventory_value_and_days_on_hand_by_product",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_port_inventory_latest_by_product",
+                  "fields": [
+                    {
+                      "name": "product_code",
+                      "expression": "`product_code`"
+                    },
+                    {
+                      "name": "sum(inventory_value_usd)",
+                      "expression": "SUM(`inventory_value_usd`)"
+                    },
+                    {
+                      "name": "avg(inventory_days_on_hand)",
+                      "expression": "AVG(`inventory_days_on_hand`)"
+                    },
+                    {
+                      "name": "date",
+                      "expression": "`date`"
+                    },
+                    {
+                      "name": "site",
+                      "expression": "`site`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "product_code",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "axis": {
+                    "title": "Product"
+                  },
+                  "displayName": "Product Code"
+                },
+                "y": {
+                  "fieldName": "sum(inventory_value_usd)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "axis": {
+                    "title": "Inventory Value (USD)"
+                  },
+                  "displayName": "Inventory Value (USD)"
+                },
+                "y2": {
+                  "fieldName": "avg(inventory_days_on_hand)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "axis": {
+                    "title": "Inventory Days on Hand",
+                    "labelAngle": 90
+                  },
+                  "displayName": "Inventory Days on Hand"
+                },
+                "color": {
+                  "fieldName": "product_code",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Product Code"
+                }
+              },
+              "frame": {
+                "title": "Inventory Value and Days on Hand by Product",
+                "showTitle": true,
+                "description": "For the latest inventory date in gold_port_inventory_daily, shows inventory_value_usd and inventory_days_on_hand by product_code, highlighting MM62 as the largest value with compressed days-on-hand during outage conditions.",
+                "showDescription": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 3,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "monthly_demurrage_cost_and_inventory_days_on_hand",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_supply_chain_financials_mm62",
+                  "fields": [
+                    {
+                      "name": "month",
+                      "expression": "`month`"
+                    },
+                    {
+                      "name": "sum(total_demurrage_usd)",
+                      "expression": "SUM(`total_demurrage_usd`)"
+                    },
+                    {
+                      "name": "avg(avg_inventory_days_on_hand)",
+                      "expression": "AVG(`avg_inventory_days_on_hand`)"
+                    },
+                    {
+                      "name": "product_code",
+                      "expression": "`product_code`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "month",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "axis": {
+                    "title": "Month"
+                  },
+                  "displayName": "Month"
+                },
+                "y": {
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "axis": {
+                    "title": "Value"
+                  },
+                  "fields": [
+                    {
+                      "fieldName": "sum(total_demurrage_usd)",
+                      "displayName": "Total Demurrage (USD)"
+                    },
+                    {
+                      "fieldName": "avg(avg_inventory_days_on_hand)",
+                      "displayName": "Avg Inventory Days on Hand (MM62)"
+                    }
+                  ]
+                },
+                "color": {
+                  "fieldName": "product_code",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Product Code"
+                },
+                "label": {
+                  "show": false
+                }
+              },
+              "frame": {
+                "title": "Monthly Demurrage Cost and Inventory Days on Hand",
+                "showTitle": true,
+                "description": "Monthly MM62 rollup from gold_supply_chain_financials. Demurrage_usd line spikes in October while avg_inventory_days_on_hand dips toward ~6 days, then normalizes, quantifying outage-driven financial impact.",
+                "showDescription": true
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 10,
+            "width": 3,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "asset_outage_and_event_log",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_asset_events",
+                  "fields": [
+                    {
+                      "name": "event_date",
+                      "expression": "`event_date`"
+                    },
+                    {
+                      "name": "asset_id",
+                      "expression": "`asset_id`"
+                    },
+                    {
+                      "name": "asset_type",
+                      "expression": "`asset_type`"
+                    },
+                    {
+                      "name": "site",
+                      "expression": "`site`"
+                    },
+                    {
+                      "name": "event_type",
+                      "expression": "`event_type`"
+                    },
+                    {
+                      "name": "downtime_hours",
+                      "expression": "`downtime_hours`"
+                    },
+                    {
+                      "name": "description",
+                      "expression": "`description`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "event_date",
+                    "displayName": "Event Date",
+                    "type": "date",
+                    "displayAs": "date"
+                  },
+                  {
+                    "fieldName": "asset_id",
+                    "displayName": "Asset ID",
+                    "type": "string",
+                    "displayAs": "string"
+                  },
+                  {
+                    "fieldName": "asset_type",
+                    "displayName": "Asset Type",
+                    "type": "string",
+                    "displayAs": "string"
+                  },
+                  {
+                    "fieldName": "site",
+                    "displayName": "Site",
+                    "type": "string",
+                    "displayAs": "string"
+                  },
+                  {
+                    "fieldName": "event_type",
+                    "displayName": "Event Type",
+                    "type": "string",
+                    "displayAs": "string"
+                  },
+                  {
+                    "fieldName": "downtime_hours",
+                    "displayName": "Downtime (Hours)",
+                    "type": "float",
+                    "displayAs": "number",
+                    "numberFormat": "0.0"
+                  },
+                  {
+                    "fieldName": "description",
+                    "displayName": "Description",
+                    "type": "string",
+                    "displayAs": "string"
+                  }
+                ]
+              },
+              "itemsPerPage": 50,
+              "paginationSize": "medium",
+              "condensed": false,
+              "withRowNumber": false,
+              "allowHTMLByDefault": false,
+              "frame": {
+                "title": "Asset Outage and Event Log",
+                "showTitle": true,
+                "description": "Latest 50 asset events from gold_asset_events, sorted by event_date descending. Includes the Oct 18 unplanned downtime on SL-2 at Pilbara Port (\u224872h), providing root-cause context for inventory drawdown and demurrage spikes.",
+                "showDescription": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 15,
+            "width": 6,
+            "height": 7
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
+    },
+    {
+      "name": "global_filters",
+      "displayName": "Global Filters",
+      "layout": [
+        {
+          "widget": {
+            "name": "filter_date_range",
+            "queries": [
+              {
+                "name": "ds_port_inventory_daily_date",
+                "query": {
+                  "datasetName": "ds_port_inventory_daily",
+                  "fields": [
+                    {
+                      "name": "date",
+                      "expression": "`date`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "ds_vessel_coverage_laycan_start_date",
+                "query": {
+                  "datasetName": "ds_vessel_coverage_oct_top",
+                  "fields": [
+                    {
+                      "name": "laycan_start_date",
+                      "expression": "`laycan_start_date`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "ds_quality_vs_contract_planned_load_date",
+                "query": {
+                  "datasetName": "ds_quality_vs_contract_mm62_oct",
+                  "fields": [
+                    {
+                      "name": "planned_load_date",
+                      "expression": "`planned_load_date`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "ds_asset_events_event_date",
+                "query": {
+                  "datasetName": "ds_asset_events",
+                  "fields": [
+                    {
+                      "name": "event_date",
+                      "expression": "`event_date`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "ds_supply_chain_financials_month",
+                "query": {
+                  "datasetName": "ds_supply_chain_financials_mm62",
+                  "fields": [
+                    {
+                      "name": "month",
+                      "expression": "`month`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "ds_shipment_revenue_planned_load_date",
+                "query": {
+                  "datasetName": "ds_shipment_revenue",
+                  "fields": [
+                    {
+                      "name": "planned_load_date",
+                      "expression": "`planned_load_date`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-date-range-picker",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "date",
+                    "displayName": "Inventory Date",
+                    "queryName": "ds_port_inventory_daily_date"
+                  },
+                  {
+                    "fieldName": "laycan_start_date",
+                    "displayName": "Laycan Start Date",
+                    "queryName": "ds_vessel_coverage_laycan_start_date"
+                  },
+                  {
+                    "fieldName": "planned_load_date",
+                    "displayName": "Shipment Planned Load Date",
+                    "queryName": "ds_quality_vs_contract_planned_load_date"
+                  },
+                  {
+                    "fieldName": "event_date",
+                    "displayName": "Asset Event Date",
+                    "queryName": "ds_asset_events_event_date"
+                  },
+                  {
+                    "fieldName": "month",
+                    "displayName": "Financial Month",
+                    "queryName": "ds_supply_chain_financials_month"
+                  },
+                  {
+                    "fieldName": "planned_load_date",
+                    "displayName": "Shipment Planned Load Date",
+                    "queryName": "ds_shipment_revenue_planned_load_date"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Date Range"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_site",
+            "queries": [
+              {
+                "name": "ds_port_inventory_daily_site",
+                "query": {
+                  "datasetName": "ds_port_inventory_daily",
+                  "fields": [
+                    {
+                      "name": "site",
+                      "expression": "`site`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "ds_vessel_coverage_site",
+                "query": {
+                  "datasetName": "ds_vessel_coverage_oct_top",
+                  "fields": [
+                    {
+                      "name": "site",
+                      "expression": "`site`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "ds_quality_vs_contract_site",
+                "query": {
+                  "datasetName": "ds_quality_vs_contract_mm62_oct",
+                  "fields": [
+                    {
+                      "name": "site",
+                      "expression": "`site`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "ds_asset_events_site",
+                "query": {
+                  "datasetName": "ds_asset_events",
+                  "fields": [
+                    {
+                      "name": "site",
+                      "expression": "`site`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "ds_shipment_revenue_site",
+                "query": {
+                  "datasetName": "ds_shipment_revenue",
+                  "fields": [
+                    {
+                      "name": "customer_name",
+                      "expression": "`customer_name`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "site",
+                    "displayName": "Site",
+                    "queryName": "ds_port_inventory_daily_site",
+                    "dataType": "STRING"
+                  },
+                  {
+                    "fieldName": "site",
+                    "displayName": "Site",
+                    "queryName": "ds_vessel_coverage_site",
+                    "dataType": "STRING"
+                  },
+                  {
+                    "fieldName": "site",
+                    "displayName": "Site",
+                    "queryName": "ds_quality_vs_contract_site",
+                    "dataType": "STRING"
+                  },
+                  {
+                    "fieldName": "site",
+                    "displayName": "Site",
+                    "queryName": "ds_asset_events_site",
+                    "dataType": "STRING"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Site"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_product_code",
+            "queries": [
+              {
+                "name": "ds_port_inventory_daily_product_code",
+                "query": {
+                  "datasetName": "ds_port_inventory_daily",
+                  "fields": [
+                    {
+                      "name": "product_code",
+                      "expression": "`product_code`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "ds_vessel_coverage_product_code",
+                "query": {
+                  "datasetName": "ds_vessel_coverage_oct_top",
+                  "fields": [
+                    {
+                      "name": "product_code",
+                      "expression": "`product_code`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "ds_quality_vs_contract_product_code",
+                "query": {
+                  "datasetName": "ds_quality_vs_contract_mm62_oct",
+                  "fields": [
+                    {
+                      "name": "product_code",
+                      "expression": "`product_code`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "ds_supply_chain_financials_product_code",
+                "query": {
+                  "datasetName": "ds_supply_chain_financials_mm62",
+                  "fields": [
+                    {
+                      "name": "product_code",
+                      "expression": "`product_code`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "ds_shipment_revenue_product_code",
+                "query": {
+                  "datasetName": "ds_shipment_revenue",
+                  "fields": [
+                    {
+                      "name": "product_code",
+                      "expression": "`product_code`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "product_code",
+                    "displayName": "Product Code",
+                    "queryName": "ds_port_inventory_daily_product_code",
+                    "dataType": "STRING"
+                  },
+                  {
+                    "fieldName": "product_code",
+                    "displayName": "Product Code",
+                    "queryName": "ds_vessel_coverage_product_code",
+                    "dataType": "STRING"
+                  },
+                  {
+                    "fieldName": "product_code",
+                    "displayName": "Product Code",
+                    "queryName": "ds_quality_vs_contract_product_code",
+                    "dataType": "STRING"
+                  },
+                  {
+                    "fieldName": "product_code",
+                    "displayName": "Product Code",
+                    "queryName": "ds_supply_chain_financials_product_code",
+                    "dataType": "STRING"
+                  },
+                  {
+                    "fieldName": "product_code",
+                    "displayName": "Product Code",
+                    "queryName": "ds_shipment_revenue_product_code",
+                    "dataType": "STRING"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Product Code"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_customer_name",
+            "queries": [
+              {
+                "name": "ds_vessel_coverage_customer_name",
+                "query": {
+                  "datasetName": "ds_vessel_coverage_oct_top",
+                  "fields": [
+                    {
+                      "name": "customer_name",
+                      "expression": "`customer_name`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "ds_quality_vs_contract_customer_name",
+                "query": {
+                  "datasetName": "ds_quality_vs_contract_mm62_oct",
+                  "fields": [
+                    {
+                      "name": "customer_name",
+                      "expression": "`customer_name`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "ds_shipment_revenue_customer_name",
+                "query": {
+                  "datasetName": "ds_shipment_revenue",
+                  "fields": [
+                    {
+                      "name": "customer_name",
+                      "expression": "`customer_name`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "customer_name",
+                    "displayName": "Customer Name",
+                    "queryName": "ds_vessel_coverage_customer_name",
+                    "dataType": "STRING"
+                  },
+                  {
+                    "fieldName": "customer_name",
+                    "displayName": "Customer Name",
+                    "queryName": "ds_quality_vs_contract_customer_name",
+                    "dataType": "STRING"
+                  },
+                  {
+                    "fieldName": "customer_name",
+                    "displayName": "Customer Name",
+                    "queryName": "ds_shipment_revenue_customer_name",
+                    "dataType": "STRING"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Customer Name"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_shipment_month",
+            "queries": [
+              {
+                "name": "ds_vessel_coverage_month",
+                "query": {
+                  "datasetName": "ds_vessel_coverage_oct_top",
+                  "fields": [
+                    {
+                      "name": "month",
+                      "expression": "`month`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "ds_supply_chain_financials_month_filter",
+                "query": {
+                  "datasetName": "ds_supply_chain_financials_mm62",
+                  "fields": [
+                    {
+                      "name": "month",
+                      "expression": "`month`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "ds_shipment_revenue_month",
+                "query": {
+                  "datasetName": "ds_shipment_revenue",
+                  "fields": [
+                    {
+                      "name": "month",
+                      "expression": "`month`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "month",
+                    "displayName": "Shipment Month",
+                    "queryName": "ds_vessel_coverage_month",
+                    "dataType": "DATETIME"
+                  },
+                  {
+                    "fieldName": "month",
+                    "displayName": "Shipment Month",
+                    "queryName": "ds_supply_chain_financials_month_filter",
+                    "dataType": "DATETIME"
+                  },
+                  {
+                    "fieldName": "month",
+                    "displayName": "Shipment Month",
+                    "queryName": "ds_shipment_revenue_month",
+                    "dataType": "DATETIME"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Shipment Month"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 2,
+            "height": 2
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    }
+  }
+}
