@@ -201,10 +201,46 @@ def generate_raw_port_stockpile_events(rail_df: pd.DataFrame) -> pd.DataFrame:
       INVENTORY_DIP_START and INVENTORY_DIP_END so cumulative inventory
       falls by ~0.4Mt.
     - Other products/sites roughly balanced.
+    - CONSTRAINT: Cumulative inventory never goes negative for any site/product.
     """
     print("Generating raw_port_stockpile_events ...")
     rows = []
     event_seq = 1
+
+    # Initialize running inventory for each site/product combination
+    # Starting inventories ensure we have buffer for operations
+    STARTING_INVENTORY = {
+        ("Pilbara Port", "MM62"): 850_000.0,
+        ("Pilbara Port", "MM58"): 300_000.0,
+        ("Pilbara Port", "MM65"): 150_000.0,
+        ("Pilbara Port", "Other"): 80_000.0,
+        ("Secondary Port", "MM62"): 200_000.0,
+        ("Secondary Port", "MM58"): 100_000.0,
+        ("Secondary Port", "MM65"): 50_000.0,
+        ("Secondary Port", "Other"): 30_000.0,
+    }
+    running_inventory = {k: v for k, v in STARTING_INVENTORY.items()}
+    
+    # Minimum inventory buffer - never go below this
+    MIN_INVENTORY_BUFFER = 10_000.0
+    
+    # Generate initial inventory events on the first day
+    # These establish the starting inventory so the SQL cumulative sum works correctly
+    first_day = ALL_DATES[0]
+    for (site, prod), start_inv in STARTING_INVENTORY.items():
+        rows.append(
+            {
+                "event_id": f"EVT-{first_day.strftime('%Y%m%d')}-{event_seq:04d}",
+                "event_time": first_day + pd.Timedelta(hours=0, minutes=1),  # Very early on first day
+                "site": site,
+                "stockpile_id": f"{site.split()[0][:3].upper()}-{prod}-SP01",
+                "product_code": prod,
+                "event_type": "initial_inventory",
+                "tonnes_delta": float(start_inv),
+                "shipment_id": None,
+            }
+        )
+        event_seq += 1
 
     # design baseline daily net deltas in kt for MM62 Pilbara
     mm62_pilbara_net = {}
@@ -222,6 +258,9 @@ def generate_raw_port_stockpile_events(rail_df: pd.DataFrame) -> pd.DataFrame:
     for d in ALL_DATES:
         for site in PORT_SITES:
             for prod in PRODUCTS:
+                key = (site, prod)
+                current_inventory = running_inventory[key]
+                
                 # decide number of events
                 n_events = np.random.randint(8, 25)
 
@@ -236,6 +275,12 @@ def generate_raw_port_stockpile_events(rail_df: pd.DataFrame) -> pd.DataFrame:
                     # other combinations roughly balanced
                     rail_in_total = max(np.random.normal(40_000, 8_000), 10_000)
                     ship_load_total = max(np.random.normal(40_000, 8_000), 10_000)
+                
+                # CONSTRAINT: Cap ship_load_total to ensure inventory stays positive
+                # Available to ship = current inventory + incoming rail - minimum buffer
+                max_shippable = current_inventory + rail_in_total - MIN_INVENTORY_BUFFER
+                if ship_load_total > max_shippable:
+                    ship_load_total = max(max_shippable, 0.0)  # Can't ship negative
 
                 # split totals into individual events
                 rail_events = max(3, int(n_events * np.random.uniform(0.4, 0.7)))
@@ -294,6 +339,7 @@ def generate_raw_port_stockpile_events(rail_df: pd.DataFrame) -> pd.DataFrame:
                     event_seq += 1
 
                 # occasional rehandle/adjustment with small net impact
+                adjustment_net = 0.0
                 n_extra = np.random.randint(0, 3)
                 for i in range(n_extra):
                     hour = np.random.randint(0, 24)
@@ -301,6 +347,13 @@ def generate_raw_port_stockpile_events(rail_df: pd.DataFrame) -> pd.DataFrame:
                     ts = d + pd.Timedelta(hours=int(hour), minutes=int(minute))
                     etype = np.random.choice(["rehandle", "adjustment"])
                     tonnes = float(np.random.normal(0, 2_000))
+                    
+                    # Ensure adjustment doesn't push inventory negative
+                    projected = current_inventory + rail_in_total - ship_load_total + adjustment_net + tonnes
+                    if projected < MIN_INVENTORY_BUFFER:
+                        tonnes = max(0.0, MIN_INVENTORY_BUFFER - (current_inventory + rail_in_total - ship_load_total + adjustment_net))
+                    
+                    adjustment_net += tonnes
                     rows.append(
                         {
                             "event_id": f"EVT-{d.strftime('%Y%m%d')}-{event_seq:04d}",
@@ -314,6 +367,10 @@ def generate_raw_port_stockpile_events(rail_df: pd.DataFrame) -> pd.DataFrame:
                         }
                     )
                     event_seq += 1
+                
+                # Update running inventory for this site/product
+                daily_net = rail_in_total - ship_load_total + adjustment_net
+                running_inventory[key] = current_inventory + daily_net
 
     df = pd.DataFrame(rows)
     print(f"  rows: {len(df):,}")
@@ -908,7 +965,8 @@ def validate_inventory_story(port_events: pd.DataFrame):
     daily = df[filt].groupby("event_date")["tonnes_delta"].sum().reset_index()
     daily["event_date"] = pd.to_datetime(daily["event_date"])
     daily = daily.sort_values("event_date")
-    daily["cum_tonnes"] = daily["tonnes_delta"].cumsum() + 850_000.0
+    # Starting inventory is now included as initial_inventory events, so cumsum starts from 0
+    daily["cum_tonnes"] = daily["tonnes_delta"].cumsum()
 
     pre = daily[daily["event_date"] < OUTAGE_START]
     dip = daily[(daily["event_date"] >= INVENTORY_DIP_START) & (daily["event_date"] <= INVENTORY_DIP_END)]
@@ -926,6 +984,29 @@ def validate_inventory_story(port_events: pd.DataFrame):
         "  Post-dip MM62 Pilbara avg inventory (Mt):",
         round(post["cum_tonnes"].mean() / 1e6, 3) if not post.empty else "n/a",
     )
+    
+    # Validate that inventory never goes negative for any site/product
+    print("\nValidation: Checking inventory never goes negative ...")
+    
+    all_ok = True
+    for site in PORT_SITES:
+        for prod in PRODUCTS:
+            filt = (df["site"] == site) & (df["product_code"] == prod)
+            site_daily = df[filt].groupby("event_date")["tonnes_delta"].sum().reset_index()
+            site_daily["event_date"] = pd.to_datetime(site_daily["event_date"])
+            site_daily = site_daily.sort_values("event_date")
+            # Starting inventory is now included as initial_inventory events
+            site_daily["cum_tonnes"] = site_daily["tonnes_delta"].cumsum()
+            
+            min_inv = site_daily["cum_tonnes"].min() if not site_daily.empty else 0
+            if min_inv < 0:
+                print(f"  ❌ {site} {prod}: minimum inventory = {min_inv:,.0f} (NEGATIVE!)")
+                all_ok = False
+            else:
+                print(f"  ✓ {site} {prod}: minimum inventory = {min_inv:,.0f}")
+    
+    if all_ok:
+        print("  ✅ All site/product combinations have non-negative inventory")
 
 
 def validate_vessel_story(vessels: pd.DataFrame):
