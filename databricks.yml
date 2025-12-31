@@ -34,9 +34,21 @@ targets:
     workspace:
       root_path: ${var.workspace_path}/.bundle/${bundle.name}
 resources:
+  pipelines:
+    mining_commercial_pipeline:
+      name: '${var.project_name} - Transformation Pipeline'
+      libraries:
+        - glob:
+            include: ./transformations.sql
+      catalog: demo_generator
+      channel: CURRENT
+      photon: true
+      root_path: /Workspace/Users/adrian.tompkins@databricks.com/mining_commercial
+      schema: adrian_tompkins_mining_commercial
+      serverless: true
   jobs:
     demo_workflow:
-      name: '[DEMOGEN] - ${var.project_name} - Data Generation and Transformation'
+      name: '${var.project_name} - Data Generation and Transformation'
       tasks:
       - task_key: generate_data
         spark_python_task:
@@ -44,13 +56,11 @@ resources:
           source: WORKSPACE
         environment_key: default
         max_retries: 1
-      - task_key: sql_transformations
+      - task_key: mining_commercial_pipeline
+        pipeline_task:
+          pipeline_id: ${resources.pipelines.mining_commercial_pipeline.id}
         depends_on:
         - task_key: generate_data
-        sql_task:
-          file:
-            path: ./transformations.sql
-          warehouse_id: ${var.warehouse_id}
         max_retries: 1
       # - task_key: deploy_agent_bricks
       #   depends_on:

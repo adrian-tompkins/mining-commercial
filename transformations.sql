@@ -1,17 +1,16 @@
 -- =======================================================
 -- MEGA MINERALS COMMERCIAL DEMO - SILVER & GOLD LAYER
--- Catalog/Schema: demo_generator.adrian_tompkins_mining_commercial
 -- =======================================================
-
 USE CATALOG demo_generator;
 USE SCHEMA adrian_tompkins_mining_commercial;
-
 -- =======================================================
 -- SILVER TABLES (CLEANED / ENRICHED RAW DATA)
 -- =======================================================
 
 -- 1) silver_mine_production
-CREATE OR REPLACE TABLE silver_mine_production AS
+CREATE MATERIALIZED VIEW silver_mine_production 
+COMMENT "Clean daily iron ore production by mine and product. Derived from raw_mine_production. Includes standardized enums and a month bucket. Used for upstream supply vs shipments comparisons."
+AS
 SELECT
   production_id,
   CAST(production_date AS DATE) AS production_date,
@@ -21,12 +20,10 @@ SELECT
   DATE_TRUNC('MONTH', CAST(production_date AS DATE)) AS month
 FROM raw_mine_production;
 
-ALTER TABLE silver_mine_production SET TBLPROPERTIES ('comment' =
-'Clean daily iron ore production by mine and product. Derived from raw_mine_production.
-Includes standardized enums and a month bucket. Used for upstream supply vs shipments comparisons.');
-
 -- 2) silver_rail_movements
-CREATE OR REPLACE TABLE silver_rail_movements AS
+CREATE MATERIALIZED VIEW silver_rail_movements 
+COMMENT "Clean rail movements from mines to ports with derived departure/arrival dates. Used to compute rail inflows and tonnes in transit for vessel coverage."
+AS
 SELECT
   rail_id,
   CAST(departure_time AS TIMESTAMP) AS departure_time,
@@ -39,12 +36,10 @@ SELECT
   CAST(tonnes_rail AS DOUBLE) AS tonnes_rail
 FROM raw_rail_movements;
 
-ALTER TABLE silver_rail_movements SET TBLPROPERTIES ('comment' =
-'Clean rail movements from mines to ports with derived departure/arrival dates.
-Used to compute rail inflows and tonnes in transit for vessel coverage.');
-
 -- 3) silver_port_stockpile_events
-CREATE OR REPLACE TABLE silver_port_stockpile_events AS
+CREATE MATERIALIZED VIEW silver_port_stockpile_events 
+COMMENT "Clean stockpile transaction events at ports. Grain: one event with timestamp, site, product, and tonnes_delta. Base fact for computing daily port inventory and ship-loaded tonnes."
+AS
 SELECT
   event_id,
   CAST(event_time AS TIMESTAMP) AS event_time,
@@ -57,12 +52,10 @@ SELECT
   shipment_id
 FROM raw_port_stockpile_events;
 
-ALTER TABLE silver_port_stockpile_events SET TBLPROPERTIES ('comment' =
-'Clean stockpile transaction events at ports. Grain: one event with timestamp, site, product, and tonnes_delta.
-Base fact for computing daily port inventory and ship-loaded tonnes.');
-
 -- 4) silver_vessel_schedule (enriched with contract terms)
-CREATE OR REPLACE TABLE silver_vessel_schedule AS
+CREATE MATERIALIZED VIEW silver_vessel_schedule 
+COMMENT "Vessel schedule enriched with matched contract terms (pricing index, freight term, demurrage rules). Grain: one row per vessel. Used for vessel coverage, demurrage, and linking to contracts."
+AS
 WITH contracts AS (
   SELECT
     contract_id,
@@ -104,12 +97,10 @@ LEFT JOIN contracts c
  AND vs.product_code  = c.product_code
  AND CAST(vs.laycan_start_date AS DATE) BETWEEN c.contract_start_date AND c.contract_end_date;
 
-ALTER TABLE silver_vessel_schedule SET TBLPROPERTIES ('comment' =
-'Vessel schedule enriched with matched contract terms (pricing index, freight term, demurrage rules).
-Grain: one row per vessel. Used for vessel coverage, demurrage, and linking to contracts.');
-
 -- 5) silver_ore_quality_assays
-CREATE OR REPLACE TABLE silver_ore_quality_assays AS
+CREATE MATERIALIZED VIEW silver_ore_quality_assays 
+COMMENT "Clean quality assay results by sample. Includes Fe/moisture/impurities and shipment linkage where available. Used to compare shipped quality to contract specs and compute penalties/bonuses."
+AS
 SELECT
   assay_id,
   CAST(sample_time AS TIMESTAMP) AS sample_time,
@@ -124,12 +115,10 @@ SELECT
   CAST(p_pct AS DOUBLE) AS p_pct
 FROM raw_ore_quality_assays;
 
-ALTER TABLE silver_ore_quality_assays SET TBLPROPERTIES ('comment' =
-'Clean quality assay results by sample. Includes Fe/moisture/impurities and shipment linkage where available.
-Used to compare shipped quality to contract specs and compute penalties/bonuses.');
-
 -- 6) silver_contracts
-CREATE OR REPLACE TABLE silver_contracts AS
+CREATE MATERIALIZED VIEW silver_contracts 
+COMMENT "Master commercial contract dimension with standardized enums and flags. Used across supply chain, pricing, and ESG/GenAI questions."
+AS
 SELECT
   contract_id,
   TRIM(customer_name) AS customer_name,
@@ -149,12 +138,10 @@ SELECT
   YEAR(contract_start_date) AS contract_year
 FROM raw_commercial_contracts;
 
-ALTER TABLE silver_contracts SET TBLPROPERTIES ('comment' =
-'Master commercial contract dimension with standardized enums and flags.
-Used across supply chain, pricing, and ESG/GenAI questions.');
-
 -- 7) silver_market_prices
-CREATE OR REPLACE TABLE silver_market_prices AS
+CREATE MATERIALIZED VIEW silver_market_prices 
+COMMENT "Daily external market indices (62FE, 58FE, 65FE, freight) with month buckets. Used for pricing analytics and inventory valuation."
+AS
 SELECT
   CAST(price_date AS DATE) AS price_date,
   TRIM(index_name) AS index_name,
@@ -162,12 +149,10 @@ SELECT
   DATE_TRUNC('MONTH', CAST(price_date AS DATE)) AS month
 FROM raw_market_prices;
 
-ALTER TABLE silver_market_prices SET TBLPROPERTIES ('comment' =
-'Daily external market indices (62FE, 58FE, 65FE, freight) with month buckets.
-Used for pricing analytics and inventory valuation.');
-
 -- 8) silver_fx_rates
-CREATE OR REPLACE TABLE silver_fx_rates AS
+CREATE MATERIALIZED VIEW silver_fx_rates 
+COMMENT "Daily FX rates by currency pair (AUDUSD, USDCNY, etc.) with month buckets. Used to translate USD prices into local currencies and in pricing scenarios."
+AS
 SELECT
   CAST(fx_date AS DATE) AS fx_date,
   TRIM(currency_pair) AS currency_pair,
@@ -175,12 +160,10 @@ SELECT
   DATE_TRUNC('MONTH', CAST(fx_date AS DATE)) AS month
 FROM raw_fx_rates;
 
-ALTER TABLE silver_fx_rates SET TBLPROPERTIES ('comment' =
-'Daily FX rates by currency pair (AUDUSD, USDCNY, etc.) with month buckets.
-Used to translate USD prices into local currencies and in pricing scenarios.');
-
 -- 9) silver_cost_curves
-CREATE OR REPLACE TABLE silver_cost_curves AS
+CREATE MATERIALIZED VIEW silver_cost_curves 
+COMMENT "Clean internal cost curves by product, region, and quarter. Provides base cash cost and sensitivities to fuel, freight, and FX for pricing simulations."
+AS
 SELECT
   cost_curve_id,
   TRIM(product_code) AS product_code,
@@ -192,12 +175,10 @@ SELECT
   CAST(fx_sensitivity_usd_per_t AS DOUBLE) AS fx_sensitivity_usd_per_t
 FROM raw_cost_curves;
 
-ALTER TABLE silver_cost_curves SET TBLPROPERTIES ('comment' =
-'Clean internal cost curves by product, region, and quarter.
-Provides base cash cost and sensitivities to fuel, freight, and FX for pricing simulations.');
-
 -- 10) silver_contract_positions
-CREATE OR REPLACE TABLE silver_contract_positions AS
+CREATE MATERIALIZED VIEW silver_contract_positions 
+COMMENT "Contract position facts by quarter and product, joined with contract terms. Used to compute contract-level margins and EBITDA in dynamic pricing."
+AS
 SELECT
   cp.position_id,
   cp.contract_id,
@@ -215,12 +196,10 @@ FROM raw_contract_positions cp
 JOIN silver_contracts c
   ON cp.contract_id = c.contract_id;
 
-ALTER TABLE silver_contract_positions SET TBLPROPERTIES ('comment' =
-'Contract position facts by quarter and product, joined with contract terms.
-Used to compute contract-level margins and EBITDA in dynamic pricing.');
-
 -- 11) silver_maintenance_logs
-CREATE OR REPLACE TABLE silver_maintenance_logs AS
+CREATE MATERIALIZED VIEW silver_maintenance_logs 
+COMMENT "Clean maintenance work orders with computed actual downtime and date. Foundation for asset outage views and predictive maintenance labelling."
+AS
 SELECT
   work_order_id,
   TRIM(asset_id) AS asset_id,
@@ -238,12 +217,10 @@ SELECT
   DATE(CAST(start_time AS TIMESTAMP)) AS date
 FROM raw_maintenance_logs;
 
-ALTER TABLE silver_maintenance_logs SET TBLPROPERTIES ('comment' =
-'Clean maintenance work orders with computed actual downtime and date.
-Foundation for asset outage views and predictive maintenance labelling.');
-
 -- 12) silver_asset_telemetry
-CREATE OR REPLACE TABLE silver_asset_telemetry AS
+CREATE MATERIALIZED VIEW silver_asset_telemetry 
+COMMENT "Daily aggregated telemetry features (utilization, vibration, temperature) per asset. Used as input features for predictive maintenance risk scoring."
+AS
 SELECT
   TRIM(asset_id) AS asset_id,
   CAST(date AS DATE) AS date,
@@ -252,12 +229,10 @@ SELECT
   CAST(temperature_index AS DOUBLE) AS temperature_index
 FROM raw_asset_telemetry;
 
-ALTER TABLE silver_asset_telemetry SET TBLPROPERTIES ('comment' =
-'Daily aggregated telemetry features (utilization, vibration, temperature) per asset.
-Used as input features for predictive maintenance risk scoring.');
-
 -- 13) silver_shipment_revenue
-CREATE OR REPLACE TABLE silver_shipment_revenue AS
+CREATE MATERIALIZED VIEW silver_shipment_revenue 
+COMMENT "Shipment-level revenue and tonnes with contract context. Used for revenue-at-risk, quality vs contract, and linking shipments to vessels/customers."
+AS
 SELECT
   sr.shipment_id,
   sr.contract_id,
@@ -279,12 +254,10 @@ FROM raw_shipment_revenue sr
 LEFT JOIN silver_contracts c
   ON sr.contract_id = c.contract_id;
 
-ALTER TABLE silver_shipment_revenue SET TBLPROPERTIES ('comment' =
-'Shipment-level revenue and tonnes with contract context.
-Used for revenue-at-risk, quality vs contract, and linking shipments to vessels/customers.');
-
--- 14) silver_asset_events (event-style view over maintenance)
-CREATE OR REPLACE TABLE silver_asset_events AS
+-- 14) silver_asset_events
+CREATE MATERIALIZED VIEW silver_asset_events 
+COMMENT "Event-style representation of maintenance logs, with one row per asset event per day. Used to surface outages like the SL-2 ship loader failure driving October demurrage."
+AS
 SELECT
   work_order_id,
   date AS event_date,
@@ -300,18 +273,15 @@ SELECT
 FROM silver_maintenance_logs
 WHERE work_order_type IN ('planned','unplanned');
 
-ALTER TABLE silver_asset_events SET TBLPROPERTIES ('comment' =
-'Event-style representation of maintenance logs, with one row per asset event per day.
-Used to surface outages like the SL-2 ship loader failure driving October demurrage.');
-
--- 15) silver_asset_risk_scores (heuristic predictive risk scores)
-CREATE OR REPLACE TABLE silver_asset_risk_scores AS
+-- 15) silver_asset_risk_scores
+CREATE MATERIALIZED VIEW silver_asset_risk_scores 
+COMMENT "Per-asset daily predictive risk scores (heuristic in this demo) combining telemetry and asset metadata. Outputs 14-day failure probability and expected downtime hours if a failure occurs."
+AS
 SELECT
   t.asset_id,
   t.date AS evaluation_date,
   COALESCE(m.asset_type, CASE WHEN t.asset_id LIKE 'SL-%' THEN 'ship_loader' WHEN t.asset_id LIKE 'CV-%' THEN 'conveyor' ELSE 'other' END) AS asset_type,
   COALESCE(m.site, 'Pilbara Port') AS site,
-  -- Simple heuristic risk model based on utilization and vibration
   LEAST(1.0,
     GREATEST(0.0,
       0.02
@@ -319,7 +289,6 @@ SELECT
       + 0.03  * (t.vibration_index - 5.0)
     )
   ) AS predicted_failure_prob_14d,
-  -- Expected downtime hours if failure occurs: longer for ship loaders & conveyors with high vibration
   CASE
     WHEN COALESCE(m.asset_type, '') = 'ship_loader' THEN 36.0 + 2.0 * (t.vibration_index - 5.0)
     WHEN COALESCE(m.asset_type, '') = 'conveyor' THEN 30.0 + 1.5 * (t.vibration_index - 5.0)
@@ -333,17 +302,15 @@ LEFT JOIN (
 ) m
   ON t.asset_id = m.asset_id;
 
-ALTER TABLE silver_asset_risk_scores SET TBLPROPERTIES ('comment' =
-'Per-asset daily predictive risk scores (heuristic in this demo) combining telemetry and asset metadata.
-Outputs 14-day failure probability and expected downtime hours if a failure occurs.');
-
 
 -- =======================================================
 -- GOLD TABLES (AGGREGATED BUSINESS METRICS)
 -- =======================================================
 
--- A) Port inventory and days on hand
-CREATE OR REPLACE TABLE gold_port_inventory_daily AS
+-- A) gold_port_inventory_daily
+CREATE MATERIALIZED VIEW gold_port_inventory_daily 
+COMMENT "Daily port inventory by site and product with inventory value and days-on-hand. Drives port inventory counters, MM62 trend lines, and inventory value/days-on-hand visuals."
+AS
 WITH daily AS (
   SELECT
     event_date,
@@ -409,23 +376,19 @@ LEFT JOIN ship_load_avg sa
 LEFT JOIN price_map pm
   ON i.event_date = pm.price_date
  AND pm.index_name = CASE
-       WHEN i.product_code = 'MM62' THEN '62FE_CFR'
-       WHEN i.product_code = 'MM58' THEN '58FE_CFR'
-       WHEN i.product_code = 'MM65' THEN '65FE_CFR'
-       ELSE '62FE_CFR'
-     END
+        WHEN i.product_code = 'MM62' THEN '62FE_CFR'
+        WHEN i.product_code = 'MM58' THEN '58FE_CFR'
+        WHEN i.product_code = 'MM65' THEN '65FE_CFR'
+        ELSE '62FE_CFR'
+      END
 LEFT JOIN price_map pm62
   ON i.event_date = pm62.price_date
  AND pm62.index_name = '62FE_CFR';
 
-ALTER TABLE gold_port_inventory_daily SET TBLPROPERTIES ('comment' =
-'Daily port inventory by site and product with inventory value and days-on-hand.
-Cumulative tonnes are built from stockpile events; prices joined from silver_market_prices.
-Drives port inventory counters, MM62 trend lines, and inventory value/days-on-hand visuals.');
-
-
--- B) Vessel coverage and demurrage exposure
-CREATE OR REPLACE TABLE gold_vessel_coverage AS
+-- B) gold_vessel_coverage
+CREATE MATERIALIZED VIEW gold_vessel_coverage 
+COMMENT "Per-vessel coverage and demurrage view combining vessel schedule, port inventory, and rail inflows. Drives vessel coverage bars and demurrage exposure analysis."
+AS
 WITH inv_at_laycan AS (
   SELECT
     site,
@@ -472,7 +435,6 @@ SELECT
     ELSE NULL
   END AS coverage_ratio,
   v.effective_demurrage_rate_usd_per_day AS demurrage_rate_usd_per_day,
-  -- Approximate expected demurrage days based on arrival vs laycan_end and low coverage
   GREATEST(
     0.0,
     DATEDIFF(DATE(v.actual_arrival_time), v.laycan_end_date)
@@ -502,14 +464,10 @@ LEFT JOIN inv_at_laycan i
 LEFT JOIN rail_during_laycan rdt
   ON v.vessel_id = rdt.vessel_id;
 
-ALTER TABLE gold_vessel_coverage SET TBLPROPERTIES ('comment' =
-'Per-vessel coverage and demurrage view combining vessel schedule, port inventory at laycan start,
-rail inflows during laycan, and contract demurrage terms.
-Drives vessel coverage bars and demurrage exposure analysis by vessel and customer.');
-
-
--- C) Quality vs contract performance by shipment
-CREATE OR REPLACE TABLE gold_quality_vs_contract AS
+-- C) gold_quality_vs_contract
+CREATE MATERIALIZED VIEW gold_quality_vs_contract 
+COMMENT "Shipment-level comparison of actual assay quality vs contract specs, with dollar penalty/bonus. Drives Quality vs Contract charts."
+AS
 WITH shipment_assays AS (
   SELECT
     a.shipment_id,
@@ -539,7 +497,6 @@ SELECT
   c.fe_min_pct AS contract_fe_min_pct,
   c.moisture_max_pct AS contract_moisture_max_pct,
   sr.realized_revenue_usd,
-  -- Simple penalty/bonus rule: $0.5M per 0.1% Fe below min, $0.3M per 0.1% moisture above max (pro-rated by cargo size)
   CASE
     WHEN sa.avg_fe_pct IS NOT NULL AND c.fe_min_pct IS NOT NULL AND sa.avg_fe_pct < c.fe_min_pct THEN
       -500000.0 * (c.fe_min_pct - sa.avg_fe_pct) / 0.1
@@ -558,13 +515,10 @@ JOIN silver_shipment_revenue sr
 JOIN silver_contracts c
   ON sr.contract_id = c.contract_id;
 
-ALTER TABLE gold_quality_vs_contract SET TBLPROPERTIES ('comment' =
-'Shipment-level comparison of actual assay quality vs contract specs, with an approximate dollar penalty/bonus.
-Drives Quality vs Contract charts and lets users see degraded Fe/moisture during the October outage period.');
-
-
--- D) Monthly supply chain financials (demurrage & inventory days-on-hand)
-CREATE OR REPLACE TABLE gold_supply_chain_financials AS
+-- D) gold_supply_chain_financials
+CREATE MATERIALIZED VIEW gold_supply_chain_financials 
+COMMENT "Monthly rollup of demurrage costs and inventory metrics by product. Used for monthly demurrage vs inventory days-on-hand views."
+AS
 WITH dem AS (
   SELECT
     DATE_TRUNC('MONTH', laycan_start_date) AS month,
@@ -584,7 +538,6 @@ inv AS (
   GROUP BY DATE_TRUNC('MONTH', date), site, product_code
 ),
 water AS (
-  -- Approximate inventory value on water from vessels with laycan in the month
   SELECT
     DATE_TRUNC('MONTH', laycan_start_date) AS month,
     site,
@@ -610,14 +563,10 @@ LEFT JOIN water w
  AND d.product_code = w.product_code
  AND w.site = 'Pilbara Port';
 
-ALTER TABLE gold_supply_chain_financials SET TBLPROPERTIES ('comment' =
-'Monthly rollup of demurrage costs and inventory metrics by product.
-Focuses on MM62 at Pilbara Port but supports all products.
-Used for monthly demurrage vs inventory days-on-hand views and cost quantification of outages.');
-
-
--- E) Asset outage and event log (for Lakeview table)
-CREATE OR REPLACE TABLE gold_asset_events AS
+-- E) gold_asset_events
+CREATE MATERIALIZED VIEW gold_asset_events 
+COMMENT "Event log of planned and unplanned maintenance events by asset. Highlights key outages driving port constraints."
+AS
 SELECT
   event_date,
   asset_id,
@@ -628,13 +577,10 @@ SELECT
   description
 FROM silver_asset_events;
 
-ALTER TABLE gold_asset_events SET TBLPROPERTIES ('comment' =
-'Event log of planned and unplanned maintenance events by asset.
-Highlights key outages like the SL-2 failure driving port constraints and demurrage.');
-
-
--- F) Market pricing (prices + FX-adjusted)
-CREATE OR REPLACE TABLE gold_market_pricing AS
+-- F) gold_market_pricing
+CREATE MATERIALIZED VIEW gold_market_pricing 
+COMMENT "Daily market pricing layer linking iron ore indices, freight, and AUDUSD FX. Provides USD and AUD prices for scenario modeling."
+AS
 SELECT
   mp.price_date,
   mp.index_name,
@@ -647,13 +593,10 @@ LEFT JOIN silver_fx_rates fx_AUDUSD
   ON mp.price_date = fx_AUDUSD.fx_date
  AND fx_AUDUSD.currency_pair = 'AUDUSD';
 
-ALTER TABLE gold_market_pricing SET TBLPROPERTIES ('comment' =
-'Daily market pricing layer linking iron ore indices, freight, and AUDUSD FX.
-Provides USD and AUD-denominated prices for use in pricing scenarios and inventory valuation.');
-
-
--- G) Pricing positions and scenario margins
-CREATE OR REPLACE TABLE gold_pricing_positions AS
+-- G) gold_pricing_positions
+CREATE MATERIALIZED VIEW gold_pricing_positions 
+COMMENT "Contract position gold layer: margin per tonne and EBITDA impact under base case and stressed scenarios. Used in Dynamic Pricing notebook."
+AS
 WITH index_by_quarter AS (
   SELECT
     DATE_TRUNC('QUARTER', price_date) AS quarter_start,
@@ -689,17 +632,14 @@ SELECT
   ibq.avg_price_usd_per_t AS index_avg_price_usd_per_t,
   fbq.avg_audusd,
   CASE WHEN cp.fixed_price_usd_per_t IS NOT NULL THEN 'fixed' ELSE 'index_linked' END AS price_type,
-  -- Base realized price per tonne under base case
   CASE
     WHEN cp.fixed_price_usd_per_t IS NOT NULL THEN cp.fixed_price_usd_per_t
     ELSE ibq.avg_price_usd_per_t + cp.index_premium_discount_usd_per_t
   END AS base_realized_price_usd_per_t,
-  -- Base case margin per tonne
   CASE
     WHEN cp.fixed_price_usd_per_t IS NOT NULL THEN cp.fixed_price_usd_per_t - cc.unit_cash_cost_usd_per_t
     ELSE (ibq.avg_price_usd_per_t + cp.index_premium_discount_usd_per_t) - cc.unit_cash_cost_usd_per_t
   END AS base_case_margin_usd_per_t,
-  -- Scenario: +15% fuel, +3 USD/t freight, +0.02 AUDUSD
   CASE
     WHEN cp.fixed_price_usd_per_t IS NOT NULL THEN cp.fixed_price_usd_per_t
     ELSE ibq.avg_price_usd_per_t + cp.index_premium_discount_usd_per_t
@@ -709,7 +649,6 @@ SELECT
      + cc.freight_cost_sensitivity_usd_per_t * 3.0
      + cc.fx_sensitivity_usd_per_t * 2.0
     ) AS scenario_margin_usd_per_t,
-  -- EBITDA impact of the scenario vs base, on the position volume
   ((CASE
       WHEN cp.fixed_price_usd_per_t IS NOT NULL THEN cp.fixed_price_usd_per_t
       ELSE ibq.avg_price_usd_per_t + cp.index_premium_discount_usd_per_t
@@ -742,14 +681,10 @@ LEFT JOIN fx_by_quarter fbq
        ELSE DATE '2025-07-01'
      END;
 
-ALTER TABLE gold_pricing_positions SET TBLPROPERTIES ('comment' =
-'Contract position gold layer: margin per tonne and EBITDA impact per contract/quarter
-under base case and a stressed scenario (+15% fuel, +3 USD/t freight, +0.02 AUDUSD).
-Used directly in the Dynamic Pricing what-if notebook.');
-
-
--- H) Asset risk over next 14 days
-CREATE OR REPLACE TABLE gold_asset_risk_14d AS
+-- H) gold_asset_risk_14d
+CREATE MATERIALIZED VIEW gold_asset_risk_14d 
+COMMENT "Per-asset risk metrics linking predictive failure probabilities to shipments and revenue. Supports revenue-at-risk visualizations."
+AS
 WITH shipments_window AS (
   SELECT
     s.shipment_id,
@@ -765,7 +700,6 @@ WITH shipments_window AS (
     ON s.vessel_id = vs.vessel_id
 ),
 asset_map AS (
-  -- Simple flow mapping: ship loaders & stacker-reclaimers at Pilbara affect Pilbara shipments; conveyors as well
   SELECT DISTINCT
     asset_id,
     asset_type,
@@ -801,13 +735,10 @@ GROUP BY
   rs.predicted_failure_prob_14d,
   rs.predicted_downtime_hours_if_fail;
 
-ALTER TABLE gold_asset_risk_14d SET TBLPROPERTIES ('comment' =
-'Per-asset, per-day risk metrics over the next 14 days linking predictive failure probabilities to shipments and revenue.
-Supports "Top assets by revenue at risk" and ties maintenance risk back to commercial impact.');
-
-
--- I) Top-10 assets by revenue at risk (rolling 14d view anchored to latest date)
-CREATE OR REPLACE TABLE gold_asset_top_risk_view AS
+-- I) gold_asset_top_risk_view
+CREATE MATERIALIZED VIEW gold_asset_top_risk_view 
+COMMENT "Simplified view of the top 10 assets by revenue-at-risk for the latest 14-day window. Used in maintenance dashboards."
+AS
 WITH anchor AS (
   SELECT MAX(evaluation_date) AS max_eval_date FROM gold_asset_risk_14d
 ),
@@ -843,13 +774,10 @@ SELECT
 FROM ranked
 WHERE rn <= 10;
 
-ALTER TABLE gold_asset_top_risk_view SET TBLPROPERTIES ('comment' =
-'Simplified view of the top 10 assets by revenue-at-risk for each evaluation date in the latest 14-day window.
-Used in maintenance dashboards/table views for quick prioritization (e.g., SL-2, CV-01).');
-
-
--- J) Contract & ESG summary
-CREATE OR REPLACE TABLE gold_contract_esg_summary AS
+-- J) gold_contract_esg_summary
+CREATE MATERIALIZED VIEW gold_contract_esg_summary 
+COMMENT "Per-contract ESG/commercial summary with carbon price reopener and Scope 3 reporting flags. Used by Genie and ESG assistants."
+AS
 SELECT
   contract_id,
   customer_name,
@@ -869,13 +797,10 @@ SELECT
   END AS region_tag
 FROM silver_contracts;
 
-ALTER TABLE gold_contract_esg_summary SET TBLPROPERTIES ('comment' =
-'Per-contract ESG/commercial summary with carbon price reopener and Scope 3 reporting flags.
-Used by Genie and contract/ESG assistants to answer questions about which deals allow carbon pass-through and where obligations lie.');
-
-
--- K) Genie semantic layer (denormalized cross-domain metrics)
-CREATE OR REPLACE TABLE gold_genie_semantic_layer AS
+-- K) gold_genie_semantic_layer
+CREATE MATERIALIZED VIEW gold_genie_semantic_layer 
+COMMENT "Cross-domain semantic layer for Genie/LLM access. Integrates supply chain, pricing, risk, and ESG metrics into a unified grain."
+AS
 SELECT
   'port_inventory' AS record_type,
   CAST(NULL AS STRING) AS key_id,
@@ -950,8 +875,3 @@ SELECT
   NULL AS metric_value_4,
   NULL AS metric_value_5
 FROM gold_contract_esg_summary;
-
-ALTER TABLE gold_genie_semantic_layer SET TBLPROPERTIES ('comment' =
-'Cross-domain semantic layer for Genie/LLM access.
-Each row tagged with record_type and common dimensions (date, site, product_code, customer_name, contract_id)
-plus up to five numeric metrics, making it easy for NL agents to answer integrated supply chain, pricing, risk, and ESG questions.');
