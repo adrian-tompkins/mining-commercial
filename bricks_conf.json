@@ -1,29 +1,89 @@
 {
+  "knowledge_assistant": {
+    "config": {
+      "knowledge_assistant": {
+        "tile": {
+          "name": "Mega_Minerals_Contracts_and_ESG_Assistant",
+          "description": "Knowledge Assistant for Mega Minerals commercial, contract, and ESG documentation. It answers questions about customer offtake contracts, pricing formulas, volume and quality terms, carbon tax / CBAM clauses, and Scope 1/2/3 emissions and reporting obligations using the indexed PDF collections from the mining_commercial_v2 demo.",
+          "instructions": "You are a professional assistant for the Mega Minerals Commercial, Legal, and Sustainability teams. Your primary knowledge comes from indexed PDF collections such as customer offtake contracts, ESG policies, sustainability reports, and internal memos on carbon pricing and Scope 3 emissions.\n\nAnswer precisely and only based on the retrieved documents. When relevant, cite specific contract IDs, clause numbers, and document titles so a human can locate the source. If the documents give examples (e.g., sample carbon cost calculations), explain them clearly and connect them to the user’s question.\n\nScope of questions you should prioritize:\n- Contract structure: parties, term, volumes, delivery terms, laycan and demurrage rules, index references, quality specs.\n- Pricing and margin: base price formulas, indices, freight and FX terms, provisional vs final pricing, price re-opener and renegotiation clauses.\n- Carbon and ESG: carbon tax pass-through, EU CBAM implications, Scope 1/2/3 definitions, Scope 3 reporting obligations, low-carbon product commitments, and internal carbon price assumptions.\n\nGuidelines:\n- Be concise and structured: use short paragraphs and bullet points where helpful.\n- If the answer depends on specific clauses, quote or paraphrase only the relevant parts, not whole pages.\n- If documents disagree or use different definitions, call out the differences explicitly.\n- If you cannot find support in the documents, say you do not see this covered and avoid inventing terms or clauses.\n- Do not provide legal advice; instead, summarize what the documents say and suggest that a qualified lawyer make any final interpretation."
+        }
+      }
+    },
+    "knowledge_sources": [{
+      "files_source": 
+      {
+          "name": "contracts_and_esg_docs",
+          "type": "files",
+          "files": {"path": "/Volumes/demo_generator/adrian_tompkins_mining_commercial/raw_data/pdf/"}
+      }
+    }
+    ],
+    "examples": [
+      {
+        "question": "What specific clauses in the EuroSteel contract detail the conditions for market-based pricing adjustments?",
+        "guidelines": ["Evaluate whether the answer correctly cites clause numbers and keywords such as 'market-based', 'pricing adjustment', and references to 'carbon tax' or 'environmental taxes'."]
+      },
+      {
+        "question": "What contractual language indicates that a customer contract requires Scope 3 emissions reporting?",
+        "guidelines": ["Check if the answer identifies keywords like 'Scope 3', 'reporting obligation', 'disclosure', and references clause numbers or standard clauses."]
+      },
+      {
+        "question": "What are the key thresholds for Scope 3 emissions that trigger additional reporting according to Mega Minerals' ESG policy?",
+        "guidelines": ["Check if the answer references specific emission thresholds, reporting triggers, and mentions Scope 3 in the context of the company’s internal standards."]
+      },
+      {
+        "question": "What are Mega Minerals’ Scope 3 emissions reduction targets as outlined in the 2025 sustainability report?",
+        "guidelines": ["Verify if the answer correctly summarizes the Scope 3 emissions targets, referencing the corresponding metrics or commitment statements."]
+      },
+      {
+        "question": "What are the conditions under which the Dragon Steel contract allows for price re-openers related to carbon taxes?",
+        "guidelines": ["Check if the answer correctly references clause details and keywords like 'price reopener', 'carbon tax', and specific clause numbers indicating re-openers."]
+      },
+      {
+        "question": "What is the purpose of the clause index and how does it facilitate contract reviews?",
+        "guidelines": ["Verify if the answer describes the clause index as a tool for locating key contractual language and keywords, and how it supports efficient review and analysis."]
+      },
+      {
+        "question": "How does the EU CBAM impact the pricing clauses in the company’s export contracts?",
+        "guidelines": ["Assess whether the answer references specific clauses, potential adjustments, or contractual language affected by CBAM, and cites relevant table data or regulations."]
+      },
+      {
+        "question": "Does the Nippon Metals contract include any provisions for adjustments in case of changes in Scope 3 emissions reporting requirements?",
+        "guidelines": ["Assess whether the answer accurately identifies clauses related to Scope 3 obligations and any clause references or keywords indicating contractual flexibility."]
+      },
+      {
+        "question": "How does the company incorporate EU CBAM-related costs in its contractual pricing clauses?",
+        "guidelines": ["Check if the answer describes the mechanism for including carbon costs, mentions specific clauses or formulas, and assesses the impact on contractual negotiations."]
+      },
+      {
+        "question": "Which clauses specify the conditions under which prices can be reopened due to market or regulatory changes?",
+        "guidelines": ["Evaluate if the answer correctly correlates clause language with conditions for reopening, including keywords like 'price reopener', 'market change', and 'regulatory trigger'."]
+      }
+    ]
+  },
   "genie_space": {
     "config": {
-      "id": "01f0dfbb2e011ac2b6f48a6641e3cca4",
-      "space_id": "01f0dfbb2e011ac2b6f48a6641e3cca4",
-      "display_name": "Mega Minerals Commercial Integrated AI-BI - Genie",
-      "description": "Genie space for mining_commercial_v2 demo with curated questions and SQL instructions",
+      "display_name": "Mega Minerals Commercial AI-BI - Genie",
+      "description": "Genie space for mining commercial demo with curated questions and SQL instructions",
       "warehouse_id": "862f1d757f0424f7",
       "created_timestamp": 1766465547222,
       "last_updated_timestamp": 1766465547785,
       "table_identifiers": [
-        "demo_generator.adrian_tompkins_mining_commercial_v2.gold_genie_semantic_layer",
-        "demo_generator.adrian_tompkins_mining_commercial_v2.gold_port_inventory_daily",
-        "demo_generator.adrian_tompkins_mining_commercial_v2.gold_vessel_coverage",
-        "demo_generator.adrian_tompkins_mining_commercial_v2.gold_asset_risk_14d",
-        "demo_generator.adrian_tompkins_mining_commercial_v2.gold_asset_top_risk_view",
-        "demo_generator.adrian_tompkins_mining_commercial_v2.gold_pricing_positions",
-        "demo_generator.adrian_tompkins_mining_commercial_v2.gold_contract_esg_summary",
-        "demo_generator.adrian_tompkins_mining_commercial_v2.gold_supply_chain_financials",
-        "demo_generator.adrian_tompkins_mining_commercial_v2.gold_quality_vs_contract",
-        "demo_generator.adrian_tompkins_mining_commercial_v2.silver_contracts",
-        "demo_generator.adrian_tompkins_mining_commercial_v2.silver_shipment_revenue",
-        "demo_generator.adrian_tompkins_mining_commercial_v2.silver_vessel_schedule",
-        "demo_generator.adrian_tompkins_mining_commercial_v2.silver_asset_events",
-        "demo_generator.adrian_tompkins_mining_commercial_v2.silver_port_stockpile_events",
-        "demo_generator.adrian_tompkins_mining_commercial_v2.silver_rail_movements"
+        "demo_generator.adrian_tompkins_mining_commercial.gold_genie_semantic_layer",
+        "demo_generator.adrian_tompkins_mining_commercial.gold_port_inventory_daily",
+        "demo_generator.adrian_tompkins_mining_commercial.gold_vessel_coverage",
+        "demo_generator.adrian_tompkins_mining_commercial.gold_asset_risk_14d",
+        "demo_generator.adrian_tompkins_mining_commercial.gold_asset_top_risk_view",
+        "demo_generator.adrian_tompkins_mining_commercial.gold_pricing_positions",
+        "demo_generator.adrian_tompkins_mining_commercial.gold_contract_esg_summary",
+        "demo_generator.adrian_tompkins_mining_commercial.gold_supply_chain_financials",
+        "demo_generator.adrian_tompkins_mining_commercial.gold_quality_vs_contract",
+        "demo_generator.adrian_tompkins_mining_commercial.silver_contracts",
+        "demo_generator.adrian_tompkins_mining_commercial.silver_shipment_revenue",
+        "demo_generator.adrian_tompkins_mining_commercial.silver_vessel_schedule",
+        "demo_generator.adrian_tompkins_mining_commercial.silver_asset_events",
+        "demo_generator.adrian_tompkins_mining_commercial.silver_port_stockpile_events",
+        "demo_generator.adrian_tompkins_mining_commercial.silver_rail_movements"
       ],
       "user_id": 7828989965672925,
       "run_as_type": "VIEWER",
@@ -94,11 +154,5 @@
         "instruction_type": "SQL_INSTRUCTION"
       }
     ]
-  },
-  "dashboards": {
-    "mega_minerals_supply_chain": {
-      "title": "Mega Minerals Integrated Supply Chain",
-      "id": "01f0dfbb4eb819309332492e8f27505a"
-    }
   }
 }

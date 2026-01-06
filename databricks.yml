@@ -62,14 +62,14 @@ resources:
         depends_on:
         - task_key: generate_data
         max_retries: 1
-      # - task_key: deploy_agent_bricks
-      #   depends_on:
-      #   - task_key: sql_transformations
-      #   spark_python_task:
-      #     python_file: ./deploy_resources.py
-      #     source: WORKSPACE
-      #   environment_key: default
-      #   max_retries: 1
+      - task_key: deploy_agent_bricks
+        depends_on:
+        - task_key: mining_commercial_pipeline
+        spark_python_task:
+          python_file: ./deploy_resources.py
+          source: WORKSPACE
+        environment_key: default
+        max_retries: 1
       environments:
       - environment_key: default
         spec:
