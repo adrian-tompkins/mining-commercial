@@ -83,7 +83,7 @@ No PDF documents are included in this demo.
 ## Configuration
 
 ### Unity Catalog
-- **Catalog**: `demo_generator`
+- **Catalog**: `mining_commercial_demo_catalog`
 - **Schema**: `adrian_tompkins_mining_commercial`
 - **Workspace Path**: `/Users/adrian.tompkins@databricks.com/mining_commercial`
 

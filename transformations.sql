@@ -1,7 +1,7 @@
 -- =======================================================
 -- MEGA MINERALS COMMERCIAL DEMO - SILVER & GOLD LAYER
 -- =======================================================
-USE CATALOG demo_generator;
+USE CATALOG mining_commercial_demo_catalog;
 USE SCHEMA adrian_tompkins_mining_commercial;
 -- =======================================================
 -- SILVER TABLES (CLEANED / ENRICHED RAW DATA)
