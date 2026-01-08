@@ -487,8 +487,24 @@ def generate_raw_vessel_schedule(contracts: pd.DataFrame) -> pd.DataFrame:
             laycan_end = laycan_start + pd.Timedelta(days=int(laycan_len))
 
             planned_arrival = laycan_start - pd.Timedelta(days=np.random.randint(1, 3)) + pd.Timedelta(hours=int(np.random.randint(0, 24)))
-            actual_arrival_shift = np.random.randint(-12, 24)
-            actual_arrival = planned_arrival + pd.Timedelta(hours=int(actual_arrival_shift))
+            
+            # During outage period (Oct 18-31), some vessels at Pilbara Port arrive late
+            # causing demurrage (actual_arrival > laycan_end)
+            is_outage_period = OUTAGE_START <= laycan_start <= OUTAGE_END
+            is_pilbara_mm62 = site == "Pilbara Port" and product == "MM62"
+            
+            if is_outage_period and is_pilbara_mm62 and np.random.rand() < 0.6:
+                # Late arrival: 1-4 days after laycan_end due to port congestion/outage
+                delay_days = np.random.randint(1, 5)
+                actual_arrival = laycan_end + pd.Timedelta(days=delay_days) + pd.Timedelta(hours=int(np.random.randint(0, 12)))
+            elif is_outage_period and site == "Pilbara Port" and np.random.rand() < 0.3:
+                # Some non-MM62 vessels also delayed
+                delay_days = np.random.randint(1, 3)
+                actual_arrival = laycan_end + pd.Timedelta(days=delay_days) + pd.Timedelta(hours=int(np.random.randint(0, 12)))
+            else:
+                # Normal: arrival around laycan_start
+                actual_arrival_shift = np.random.randint(-12, 24)
+                actual_arrival = planned_arrival + pd.Timedelta(hours=int(actual_arrival_shift))
 
             planned_tonnes = float(np.random.uniform(170_000, 190_000))
             actual_loaded = planned_tonnes * np.random.uniform(0.96, 1.02)
@@ -514,17 +530,19 @@ def generate_raw_vessel_schedule(contracts: pd.DataFrame) -> pd.DataFrame:
             vessel_seq += 1
 
     # Inject three key MM62 Pilbara vessels in outage window with risky laycans
+    # These vessels experience significant delays due to SL-2 outage and port congestion
     special_specs = [
-        ("DRAGON-23", "Dragon Steel"),
-        ("NIPPON-11", "Nippon Metals"),
-        ("EURO-07", "EuroSteel"),
+        ("DRAGON-23", "Dragon Steel", 3),   # 3 days late
+        ("NIPPON-11", "Nippon Metals", 4),  # 4 days late
+        ("EURO-07", "EuroSteel", 2),        # 2 days late
     ]
     laycan_ends = [pd.Timestamp("2025-10-22"), pd.Timestamp("2025-10-25"), pd.Timestamp("2025-10-28")]
 
-    for (vname, cust), lend in zip(special_specs, laycan_ends):
+    for (vname, cust, delay_days), lend in zip(special_specs, laycan_ends):
         laycan_start = lend - pd.Timedelta(days=5)
         planned_arrival = laycan_start - pd.Timedelta(days=1) + pd.Timedelta(hours=8)
-        actual_arrival = planned_arrival + pd.Timedelta(hours=6)
+        # Actual arrival is AFTER laycan_end due to SL-2 outage causing port delays
+        actual_arrival = lend + pd.Timedelta(days=delay_days) + pd.Timedelta(hours=int(np.random.randint(4, 16)))
         planned_tonnes = float(np.random.uniform(175_000, 185_000))
         actual_loaded = planned_tonnes * np.random.uniform(0.94, 0.98)
         demurrage_rate = float(np.random.uniform(40_000, 55_000))
