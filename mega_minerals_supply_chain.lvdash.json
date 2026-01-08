@@ -10,6 +10,22 @@
       ]
     },
     {
+      "name": "2ab29f74",
+      "displayName": "Port Inventory Daily vs Max Capacity",
+      "queryLines": [
+        "WITH product_capacity as (\n",
+        "    SELECT \"MM58\" as product_code,   600000 as max_capacity union\n",
+        "    SELECT \"MM62\" as product_code,  1500000 as max_capacity union\n",
+        "    SELECT \"MM65\" as product_code,   400000 as max_capacity union\n",
+        "    SELECT \"Other\" as product_code,  300000 as max_capacity\n",
+        ")\n",
+        "SELECT date, site, product_code, max_capacity, net_tonnes_delta, tonnes_on_hand, tonnes_on_hand_millions, index_price_usd_per_t, inventory_value_usd, inventory_days_on_hand\n",
+        "FROM mining_commercial_demo_catalog.adrian_tompkins_mining_commercial.gold_port_inventory_daily\n",
+        "left join product_capacity using (product_code)\n",
+        "ORDER BY date, site, product_code "
+      ]
+    },
+    {
       "name": "ds_port_inventory_mm62_pilbara",
       "displayName": "MM62 Port Inventory Pilbara",
       "queryLines": [
@@ -181,19 +197,19 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "ds_port_inventory_daily",
+                  "datasetName": "2ab29f74",
                   "fields": [
-                    {
-                      "name": "product_code",
-                      "expression": "`product_code`"
-                    },
                     {
                       "name": "date",
                       "expression": "`date`"
                     },
                     {
-                      "name": "sum(tonnes_on_hand_millions)",
-                      "expression": "SUM(`tonnes_on_hand_millions`)"
+                      "name": "sum(tonnes_on_hand)",
+                      "expression": "SUM(`tonnes_on_hand`)"
+                    },
+                    {
+                      "name": "max(max_capacity)",
+                      "expression": "MAX(`max_capacity`)"
                     }
                   ],
                   "disaggregated": false
@@ -215,25 +231,26 @@
                   }
                 },
                 "y": {
-                  "fieldName": "sum(tonnes_on_hand_millions)",
-                  "displayName": "Mt",
                   "scale": {
                     "type": "quantitative"
-                  }
-                },
-                "color": {
-                  "fieldName": "product_code",
-                  "displayName": "Product Code",
-                  "scale": {
-                    "type": "categorical"
-                  }
+                  },
+                  "fields": [
+                    {
+                      "fieldName": "sum(tonnes_on_hand)",
+                      "displayName": "Tonnes"
+                    },
+                    {
+                      "fieldName": "max(max_capacity)",
+                      "displayName": "Max Capacity"
+                    }
+                  ]
                 },
                 "label": {
                   "show": false
                 }
               },
               "frame": {
-                "title": "Port Inventory Trend - Tonnes on Hand",
+                "title": "Tonnes On Hand vs Max Capacity",
                 "showTitle": true,
                 "description": "",
                 "showDescription": false
@@ -241,9 +258,9 @@
             }
           },
           "position": {
-            "x": 0,
-            "y": 2,
-            "width": 6,
+            "x": 3,
+            "y": 3,
+            "width": 3,
             "height": 5
           }
         },
@@ -318,7 +335,7 @@
           },
           "position": {
             "x": 3,
-            "y": 7,
+            "y": 8,
             "width": 3,
             "height": 7
           }
@@ -402,7 +419,7 @@
           },
           "position": {
             "x": 3,
-            "y": 14,
+            "y": 15,
             "width": 3,
             "height": 6
           }
@@ -462,7 +479,7 @@
                 }
               },
               "frame": {
-                "title": "Inventory Value and Days on Hand by Product",
+                "title": "Inventory Value by Product",
                 "showTitle": true,
                 "description": "",
                 "showDescription": false
@@ -471,7 +488,7 @@
           },
           "position": {
             "x": 0,
-            "y": 14,
+            "y": 15,
             "width": 3,
             "height": 6
           }
@@ -563,7 +580,7 @@
           },
           "position": {
             "x": 0,
-            "y": 20,
+            "y": 21,
             "width": 6,
             "height": 7
           }
@@ -649,9 +666,140 @@
           },
           "position": {
             "x": 0,
-            "y": 7,
+            "y": 8,
             "width": 3,
             "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "port-inventory-trend-product-code",
+            "queries": [
+              {
+                "name": "dashboards/01f0eaa9950219ffa4b38bba71868585/datasets/01f0ec638d49176d9615320f4e9210c1_product_code",
+                "query": {
+                  "datasetName": "2ab29f74",
+                  "fields": [
+                    {
+                      "name": "product_code",
+                      "expression": "`product_code`"
+                    },
+                    {
+                      "name": "product_code_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "product_code",
+                    "queryName": "dashboards/01f0eaa9950219ffa4b38bba71868585/datasets/01f0ec638d49176d9615320f4e9210c1_product_code"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Product"
+              },
+              "disallowAll": true,
+              "selection": {
+                "defaultSelection": {
+                  "values": {
+                    "dataType": "STRING",
+                    "values": [
+                      {
+                        "value": "MM62"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "76ed16d8",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_port_inventory_daily",
+                  "fields": [
+                    {
+                      "name": "product_code",
+                      "expression": "`product_code`"
+                    },
+                    {
+                      "name": "date",
+                      "expression": "`date`"
+                    },
+                    {
+                      "name": "sum(tonnes_on_hand)",
+                      "expression": "SUM(`tonnes_on_hand`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "date",
+                  "axis": {
+                    "title": "Date"
+                  },
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(tonnes_on_hand)",
+                  "displayName": "Tonnes",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "product_code",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "label": {
+                  "show": false
+                }
+              },
+              "frame": {
+                "title": "Port Inventory Trend - Tonnes on Hand",
+                "showTitle": true,
+                "description": "",
+                "showDescription": false
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 6
           }
         }
       ],
@@ -1199,6 +1347,7 @@
   "uiSettings": {
     "theme": {
       "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
-    }
+    },
+    "applyModeEnabled": false
   }
 }
