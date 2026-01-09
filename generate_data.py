@@ -9,7 +9,7 @@ from utils import load_pdf_to_volume, save_to_parquet
 
 # Set environment variables for Databricks Volumes
 import os
-os.environ['CATALOG'] = 'mining_commercial_demo_catalog'
+os.environ['CATALOG'] = 'demo_generator'
 os.environ['SCHEMA'] = 'adrian_tompkins_mining_commercial'
 os.environ['VOLUME'] = 'raw_data'
 
