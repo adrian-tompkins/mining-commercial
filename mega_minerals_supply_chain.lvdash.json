@@ -5,7 +5,7 @@
       "displayName": "Port Inventory Daily",
       "queryLines": [
         "SELECT date, site, product_code, net_tonnes_delta, tonnes_on_hand, tonnes_on_hand_millions, index_price_usd_per_t, inventory_value_usd, inventory_days_on_hand\n",
-        "FROM mining_commercial_demo_catalog.adrian_tompkins_mining_commercial.gold_port_inventory_daily\n",
+        "FROM gold_port_inventory_daily\n",
         "ORDER BY date, site, product_code "
       ]
     },
@@ -20,7 +20,7 @@
         "    SELECT \"Other\" as product_code,  300000 as max_capacity\n",
         ")\n",
         "SELECT date, site, product_code, max_capacity, net_tonnes_delta, tonnes_on_hand, tonnes_on_hand_millions, index_price_usd_per_t, inventory_value_usd, inventory_days_on_hand\n",
-        "FROM mining_commercial_demo_catalog.adrian_tompkins_mining_commercial.gold_port_inventory_daily\n",
+        "FROM gold_port_inventory_daily\n",
         "left join product_capacity using (product_code)\n",
         "ORDER BY date, site, product_code "
       ]
@@ -30,7 +30,7 @@
       "displayName": "MM62 Port Inventory Pilbara",
       "queryLines": [
         "SELECT date, site, product_code, tonnes_on_hand_millions\n",
-        "FROM mining_commercial_demo_catalog.adrian_tompkins_mining_commercial.gold_port_inventory_daily\n",
+        "FROM gold_port_inventory_daily\n",
         "WHERE site = 'Pilbara Port' AND product_code = 'MM62'\n",
         "ORDER BY date "
       ]
@@ -40,8 +40,8 @@
       "displayName": "Total Port Inventory KPI",
       "queryLines": [
         "SELECT SUM(tonnes_on_hand_millions) AS total_tonnes_millions\n",
-        "FROM mining_commercial_demo_catalog.adrian_tompkins_mining_commercial.gold_port_inventory_daily\n",
-        "WHERE date = (SELECT MAX(date) FROM mining_commercial_demo_catalog.adrian_tompkins_mining_commercial.gold_port_inventory_daily) "
+        "FROM gold_port_inventory_daily\n",
+        "WHERE date = (SELECT MAX(date) FROM gold_port_inventory_daily) "
       ]
     },
     {
@@ -61,7 +61,7 @@
         "FROM (\n",
         "  SELECT vc.*,\n",
         "         ROW_NUMBER() OVER (PARTITION BY month ORDER BY demurrage_exposure_usd DESC) AS vessel_rank\n",
-        "  FROM mining_commercial_demo_catalog.adrian_tompkins_mining_commercial.gold_vessel_coverage vc\n",
+        "  FROM gold_vessel_coverage vc\n",
         ") t\n",
         "WHERE vessel_rank <= 8 and demurrage_exposure_usd > 0\n",
         "ORDER BY month, demurrage_exposure_usd DESC "
@@ -85,7 +85,7 @@
         "       contract_moisture_max_pct,\n",
         "       realized_revenue_usd,\n",
         "       quality_penalty_usd\n",
-        "FROM mining_commercial_demo_catalog.adrian_tompkins_mining_commercial.gold_quality_vs_contract\n",
+        "FROM gold_quality_vs_contract\n",
         "WHERE product_code = 'MM62'\n",
         "  AND planned_load_date BETWEEN DATE '2025-10-01' AND DATE '2025-10-31'\n",
         "ORDER BY quality_penalty_usd DESC "
@@ -100,8 +100,8 @@
         "       product_code,\n",
         "       inventory_value_usd,\n",
         "       inventory_days_on_hand\n",
-        "FROM mining_commercial_demo_catalog.adrian_tompkins_mining_commercial.gold_port_inventory_daily\n",
-        "WHERE date = (SELECT MAX(date) FROM mining_commercial_demo_catalog.adrian_tompkins_mining_commercial.gold_port_inventory_daily)\n",
+        "FROM gold_port_inventory_daily\n",
+        "WHERE date = (SELECT MAX(date) FROM gold_port_inventory_daily)\n",
         "ORDER BY product_code, site "
       ]
     },
@@ -116,7 +116,7 @@
         "       event_type,\n",
         "       downtime_hours,\n",
         "       description\n",
-        "FROM mining_commercial_demo_catalog.adrian_tompkins_mining_commercial.gold_asset_events\n",
+        "FROM gold_asset_events\n",
         "ORDER BY event_date DESC, asset_id\n",
         "LIMIT 50 "
       ]
@@ -131,7 +131,7 @@
         "       avg_inventory_days_on_hand,\n",
         "       inventory_value_port_usd,\n",
         "       tonnes_on_water_equiv\n",
-        "FROM mining_commercial_demo_catalog.adrian_tompkins_mining_commercial.gold_supply_chain_financials\n",
+        "FROM gold_supply_chain_financials\n",
         "WHERE product_code = 'MM62'\n",
         "ORDER BY month "
       ]
@@ -156,7 +156,7 @@
         "       fx_currency,\n",
         "       has_carbon_price_reopener,\n",
         "       requires_scope3_reporting\n",
-        "FROM mining_commercial_demo_catalog.adrian_tompkins_mining_commercial.silver_shipment_revenue\n",
+        "FROM silver_shipment_revenue\n",
         "ORDER BY planned_load_date, shipment_id "
       ]
     },
@@ -164,7 +164,7 @@
       "name": "842842df",
       "displayName": "14 Day Asset Risk",
       "queryLines": [
-        "select * from mining_commercial_demo_catalog.adrian_tompkins_mining_commercial.gold_asset_risk_14d"
+        "select * from gold_asset_risk_14d"
       ]
     }
   ],

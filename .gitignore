@@ -1,0 +1,7 @@
+# Databricks Asset Bundle local build artifacts (per-target terraform state,
+# provider binaries, sync snapshots). These are machine/target specific and
+# should not be committed.
+.databricks/
+
+# macOS
+.DS_Store

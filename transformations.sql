@@ -1,8 +1,11 @@
 -- =======================================================
 -- MEGA MINERALS COMMERCIAL DEMO - SILVER & GOLD LAYER
 -- =======================================================
-USE CATALOG mining_commercial_demo_catalog;
-USE SCHEMA adrian_tompkins_mining_commercial;
+-- NOTE: No USE CATALOG / USE SCHEMA here. Object names are intentionally
+-- left unqualified so the Spark Declarative Pipeline resolves them against
+-- the pipeline's own `catalog` / `schema` (set from DAB vars in
+-- databricks.yml). This keeps the demo portable across workspaces
+-- (e.g. adrian_demo_catalog on fevm, adrian_classic_demo_catalog on fevmc).
 -- =======================================================
 -- SILVER TABLES (CLEANED / ENRICHED RAW DATA)
 -- =======================================================

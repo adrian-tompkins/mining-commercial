@@ -6,13 +6,19 @@ variables:
     default: mining_commercial
   warehouse_name:
     description: Name of the SQL warehouse to use
-    default: Shared Unity Catalog Serverless
+    default: Serverless Starter Warehouse
   warehouse_id:
     lookup:
       warehouse: ${var.warehouse_name}
   catalog_name:
     description: Name of the catalog to use
-    default: mining_commercial_demo_catalog
+    default: adrian_demo_catalog
+  schema_name:
+    description: Name of the schema to use
+    default: adrian_tompkins_mining_commercial
+  volume_name:
+    description: Name of the managed volume for raw data and PDFs
+    default: raw_data
   environment:
     description: Deployment environment
     default: dev
@@ -27,15 +33,27 @@ sync:
   - utils.py
   - generate_data.py
   - transformations.sql
-  - dashboard_mega_minerals_supply_chain.lvdash.json
+  - mega_minerals_supply_chain.lvdash.json
   - deploy_resources.py
   - bricks_conf.json
+  - documents/**
 targets:
   fevm:
     default: true
     mode: production
     workspace:
       root_path: ${var.workspace_path}/.bundle/${bundle.name}
+    # fevm uses the variable defaults declared above
+    # (catalog adrian_demo_catalog, Serverless Starter Warehouse).
+  fevmc:
+    mode: production
+    workspace:
+      root_path: ${var.workspace_path}/.bundle/${bundle.name}
+    variables:
+      # fevmc (classic demo workspace) cannot create catalogs, so target the
+      # pre-existing adrian_classic_demo_catalog. Warehouse name happens to
+      # match fevm's, so the lookup resolves to fevmc's own warehouse.
+      catalog_name: adrian_classic_demo_catalog
 resources:
   pipelines:
     mining_commercial_pipeline:
@@ -46,8 +64,8 @@ resources:
       catalog: ${var.catalog_name}
       channel: CURRENT
       photon: true
-      root_path: /Workspace/Users/adrian.tompkins@databricks.com/mining_commercial
-      schema: adrian_tompkins_mining_commercial
+      root_path: ${var.workspace_path}
+      schema: ${var.schema_name}
       serverless: true
   jobs:
     demo_workflow:
@@ -57,6 +75,13 @@ resources:
         spark_python_task:
           python_file: ./generate_data.py
           source: WORKSPACE
+          parameters:
+          - --catalog
+          - ${var.catalog_name}
+          - --schema
+          - ${var.schema_name}
+          - --volume
+          - ${var.volume_name}
         environment_key: default
         max_retries: 1
       - task_key: mining_commercial_pipeline
@@ -71,6 +96,15 @@ resources:
         spark_python_task:
           python_file: ./deploy_resources.py
           source: WORKSPACE
+          parameters:
+          - --catalog
+          - ${var.catalog_name}
+          - --schema
+          - ${var.schema_name}
+          - --volume
+          - ${var.volume_name}
+          - --warehouse_id
+          - ${var.warehouse_id}
         environment_key: default
         max_retries: 1
       environments:
@@ -83,14 +117,14 @@ resources:
           - databricks-sdk>=0.18.0
   schemas:
     demo_schema:
-      name: adrian_tompkins_mining_commercial
+      name: ${var.schema_name}
       catalog_name: ${var.catalog_name}
       comment: Schema for mining_commercial demo
   volumes:
     raw_data_volume:
-      name: raw_data
+      name: ${var.volume_name}
       catalog_name: ${var.catalog_name}
-      schema_name: adrian_tompkins_mining_commercial
+      schema_name: ${var.schema_name}
       volume_type: MANAGED
       comment: Volume for mining_commercial raw data and artifacts
   dashboards:
@@ -98,3 +132,5 @@ resources:
       display_name: ${var.project_name} - Mega Minerals Integrated Supply Chain
       file_path: ./mega_minerals_supply_chain.lvdash.json
       warehouse_id: ${var.warehouse_id}
+      dataset_catalog: ${var.catalog_name}
+      dataset_schema: ${var.schema_name}

@@ -13,6 +13,38 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+def _resolve_placeholders(raw: str) -> str:
+    """Substitute {{CATALOG}}/{{SCHEMA}}/{{VOLUME}}/{{WAREHOUSE_ID}} placeholders
+    in bricks_conf.json with the target workspace's values.
+
+    Values come from job parameters (forwarded as --catalog/--schema/... CLI args
+    by the DAB spark_python_task) or environment variables, so the same
+    configuration is portable across workspaces. Defaults match the fevm demo.
+    """
+    import os
+    import sys
+
+    cli = {}
+    args = sys.argv[1:]
+    for i, tok in enumerate(args):
+        if tok.startswith('--') and i + 1 < len(args):
+            cli[tok[2:].upper()] = args[i + 1]
+
+    def pick(key, default):
+        return cli.get(key) or os.getenv(key) or default
+
+    subs = {
+        '{{CATALOG}}': pick('CATALOG', 'adrian_demo_catalog'),
+        '{{SCHEMA}}': pick('SCHEMA', 'adrian_tompkins_mining_commercial'),
+        '{{VOLUME}}': pick('VOLUME', 'raw_data'),
+        '{{WAREHOUSE_ID}}': pick('WAREHOUSE_ID', '862f1d757f0424f7'),
+    }
+    for placeholder, value in subs.items():
+        raw = raw.replace(placeholder, value)
+    logger.info(f"Resolved agent-brick placeholders: {subs}")
+    return raw
+
+
 def main():
     """Deploy agent brick resources from bricks_conf.json."""
     # Read configuration from current working directory
@@ -25,7 +57,7 @@ def main():
         return
 
     with open(bricks_conf_path, 'r') as f:
-        bricks_conf = json.load(f)
+        bricks_conf = json.loads(_resolve_placeholders(f.read()))
 
     # Initialize Databricks client and manager
     w = WorkspaceClient()

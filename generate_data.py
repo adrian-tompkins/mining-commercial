@@ -7,11 +7,35 @@ import pandas as pd
 from faker import Faker
 from utils import load_pdf_to_volume, save_to_parquet
 
-# Set environment variables for Databricks Volumes
+# Set environment variables for Databricks Volumes.
+# These can be overridden per-target by the DAB job (see databricks.yml
+# `parameters` on the generate_data task, which forwards ${var.catalog_name}
+# / ${var.schema_name} / ${var.volume_name}). We only set a default when the
+# value isn't already provided, so the same script is portable across
+# workspaces (adrian_demo_catalog on fevm, adrian_classic_demo_catalog on fevmc).
 import os
-os.environ['CATALOG'] = 'mining_commercial_demo_catalog'
-os.environ['SCHEMA'] = 'adrian_tompkins_mining_commercial'
-os.environ['VOLUME'] = 'raw_data'
+import sys
+
+# Accept overrides via command-line args ("--catalog x --schema y --volume z")
+# which is how Databricks spark_python_task forwards job parameters.
+_cli = {}
+_args = sys.argv[1:]
+for i, tok in enumerate(_args):
+    if tok.startswith('--') and i + 1 < len(_args):
+        _cli[tok[2:].upper()] = _args[i + 1]
+
+os.environ.setdefault('CATALOG', _cli.get('CATALOG', 'adrian_demo_catalog'))
+os.environ.setdefault('SCHEMA', _cli.get('SCHEMA', 'adrian_tompkins_mining_commercial'))
+os.environ.setdefault('VOLUME', _cli.get('VOLUME', 'raw_data'))
+# If CLI args were given, they take precedence over any stale env default.
+if 'CATALOG' in _cli:
+    os.environ['CATALOG'] = _cli['CATALOG']
+if 'SCHEMA' in _cli:
+    os.environ['SCHEMA'] = _cli['SCHEMA']
+if 'VOLUME' in _cli:
+    os.environ['VOLUME'] = _cli['VOLUME']
+
+print(f"[generate_data] Target: {os.environ['CATALOG']}.{os.environ['SCHEMA']}.{os.environ['VOLUME']}")
 
 
 
